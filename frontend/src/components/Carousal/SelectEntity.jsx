@@ -2,37 +2,24 @@ import React, { useState, useEffect } from "react";
 import ItemsDropdown from "../ItemsDropdown";
 import AddSupplierModal from "../../modals/AddSupplierModal"; // Modal for adding a supplier
 import { useSelector, useDispatch } from "react-redux";
-import { setSelectedSupplier } from "../../slice/selectionSlice"; // Action to set the selected supplier
-import { fetchSuppliersList } from "../../utils/routes";
-import axios from "axios";
+import { setSelectedSupplier, setSelectedCustomer } from "../../slice/selectionSlice"; // Action to set the selected supplier
 
-const SelectSupplier = () => {
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(true); // Loading state for API call
-  const [error, setError] = useState(null); // Error state
-  const dispatch = useDispatch();
-
+const SelectEntity = ({ type }) => {
+    // type : supplier
+  const [entity, setEntity] = useState("");
   useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        const response = await axios.get(fetchSuppliersList);
-        setSuppliers(response.data.suppliers);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching suppliers:", err);
-        setError("Failed to load suppliers");
-        setLoading(false);
-      }
-    };
-
-    fetchSuppliers();
-  }, []);
-
+    setEntity(type);
+  }, [entity]);
+  const dispatch = useDispatch();
   // Add new supplier function
+  //   const addSupplier = (newSupplier) => {
+  //     dispatch(setSelectedSupplier(newSupplier)); // Dispatch action to set the selected supplier
+  //   };
   const addSupplier = (newSupplier) => {
     dispatch(setSelectedSupplier(newSupplier)); // Dispatch action to set the selected supplier
   };
 
+  const suppliers = useSelector((state) => state.data.suppliers); // Fetch the list of suppliers from the store
   const [active, setActive] = useState(true);
 
   const selectedSupplier = useSelector(
@@ -46,14 +33,6 @@ const SelectSupplier = () => {
       setActive(true); // Enable the "Add Supplier" button when no supplier is selected
     }
   }, [selectedSupplier]);
-
-  if (loading) {
-    return <div>Loading suppliers...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
 
   return (
     <div className="min-h-72 flex items-center justify-center bg-base-200">
@@ -83,4 +62,4 @@ const SelectSupplier = () => {
   );
 };
 
-export default SelectSupplier;
+export default SelectEntity;

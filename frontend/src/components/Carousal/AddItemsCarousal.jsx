@@ -9,7 +9,7 @@ const AddItemsCarousal = () => {
 
   const slides = [
     <SelectInventory key="selectInventory" />,
-    <SelectCategory key="selectCategory" />,
+    // <SelectCategory key="selectCategory" />,
     <SelectSupplier key="selectSupplier" />,
     <AddItems
       key="addItems"

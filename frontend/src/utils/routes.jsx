@@ -11,6 +11,13 @@ const createItemApi = `${api}/inventory/createItem`;
 const addToExisitingItem = `${api}/inventory/addToExistingItem`;
 const sellItemsApi = `${api}/inventory/sellItems`;
 const fetchTransactionsApi = `${api}/inventory/transactions/all`;
+const fetchCostPriceApi = `${api}/inventory/price/costPrice`;
+
+const fetchCustomersList = `${api}/inventory/customers/noPagination`;
+const fetchSuppliersList = `${api}/inventory/suppliers/noPagination`;
+const fetchLocationsList = `${api}/inventory/locations/noPagination`;
+const fetchProductsList = `${api}/inventory/products/noPagination`;
+const fetchCategoriesList = `${api}/inventory/categories/noPagination`;
 
 export {
   login,
@@ -25,4 +32,11 @@ export {
   addToExisitingItem,
   sellItemsApi,
   fetchTransactionsApi,
+  fetchCostPriceApi,
+  
+  fetchCustomersList,
+  fetchSuppliersList,
+  fetchLocationsList,
+  fetchProductsList,
+  fetchCategoriesList,
 };

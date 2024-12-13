@@ -18,6 +18,7 @@ import {
   CHECK_SUPPLIER_EXISTS,
   INSERT_NEW_SUPPLIER,
   GET_SUPPLIER_ID,
+  GET_TOTAL_QUANTITY_OFITEM,
 } from "../queries/inventoryQueries.js";
 
 const getAllLocations = async (req, res) => {
@@ -169,6 +170,7 @@ const addNewItemToInventory = async (req, res) => {
       product_name,
       quantity,
       supplier_name,
+      cost_price,
     } = req.body;
 
     // Validate inputs
@@ -177,11 +179,12 @@ const addNewItemToInventory = async (req, res) => {
       !category_name ||
       !product_name ||
       !quantity ||
-      !supplier_name
+      !supplier_name ||
+      !cost_price
     ) {
       return res.status(400).json({
         message:
-          "All fields are required (location, category, product, quantity, supplier)",
+          "All fields are required (location, category, product, quantity, supplier, cost price)",
       });
     }
 
@@ -192,41 +195,13 @@ const addNewItemToInventory = async (req, res) => {
         .json({ message: "Quantity must be a positive number" });
     }
 
-    // Check if the inventory location exists
     const inventoryResult = await pool.query(GET_LOCATION_ID, [location_name]);
-
-    if (inventoryResult.rowCount === 0) {
-      return res.status(404).json({ message: "Inventory location not found" });
-    }
     const inventoryId = inventoryResult.rows[0].location_id;
 
-    // Check if the category exists
     const categoryResult = await pool.query(GET_CATEGORY_ID, [category_name]);
-
-    if (categoryResult.rowCount === 0) {
-      return res.status(404).json({ message: "Product category not found" });
-    }
     const categoryId = categoryResult.rows[0].category_id;
 
-    // Check if the product already exists in the inventory
-    const productInInventoryResult = await pool.query(GET_ITEM_FROM_LOCATION, [
-      inventoryId,
-      product_name,
-    ]);
-
-    if (productInInventoryResult.rowCount > 0) {
-      return res.status(400).json({
-        message:
-          "Item already exists in the inventory. Use the update quantity function.",
-      });
-    }
-
-    // Check if the supplier exists
     const supplierResult = await pool.query(GET_SUPPLIER_ID, [supplier_name]);
-
-    if (supplierResult.rowCount === 0) {
-      return res.status(404).json({ message: "Supplier not found" });
-    }
     const supplierId = supplierResult.rows[0].supplier_id;
 
     // Add new product to the `products` table
@@ -255,15 +230,16 @@ const addNewItemToInventory = async (req, res) => {
 
     // Record the transaction as a 'buy' transaction
     const transactionQuery = `
-      INSERT INTO inventory_transactions (quantity, transaction_type, supplier_id,product_id, transaction_date)
-      VALUES ($1, $2, $3,$4, NOW())
+      INSERT INTO inventory_transactions (quantity, transaction_type, supplier_id,product_id, transaction_date, cost_price)
+      VALUES ($1, $2, $3,$4, NOW(), $5)
       RETURNING transaction_id;
     `;
     const transactionResult = await pool.query(transactionQuery, [
       quantityNumber,
-      "buy", // Transaction type as buy
+      "purchase",
       supplierId,
       productId,
+      cost_price,
     ]);
 
     return res.status(201).json({
@@ -282,7 +258,8 @@ const addNewItemToInventory = async (req, res) => {
 
 const increaseItemQuantity = async (req, res) => {
   try {
-    const { location_id, product_id, quantity } = req.body;
+    const { location_id, product_id, quantity, cost_price, supplier_id } =
+      req.body;
 
     // Check if the inventory-item combination exists
     const checkItem = await pool.query(GET_ITEM_QUANTITY, [
@@ -297,17 +274,34 @@ const increaseItemQuantity = async (req, res) => {
         [location_id, product_id, quantity]
       );
 
-      return res
-        .status(201)
-        .json({ message: "Item added to the inventory successfully" });
+      // Log the purchase transaction
+      await pool.query(
+        `INSERT INTO inventory_transactions 
+          (quantity, transaction_type, transaction_date, supplier_id, product_id, cost_price) 
+         VALUES ($1, 'purchase', CURRENT_TIMESTAMP, $2, $3, $4)`,
+        [quantity, supplier_id, product_id, cost_price]
+      );
+
+      return res.status(201).json({
+        message:
+          "Item added to the inventory and transaction logged successfully",
+      });
     }
 
     // If the item exists, update the quantity
     await pool.query(UPDATE_ITEM_QUANTITY, [quantity, location_id, product_id]);
 
-    return res
-      .status(200)
-      .json({ message: "Item quantity increased successfully" });
+    // Log the transaction
+    await pool.query(
+      `INSERT INTO inventory_transactions 
+        (quantity, transaction_type, transaction_date, supplier_id, product_id, cost_price) 
+       VALUES ($1, 'purchase', CURRENT_TIMESTAMP, $2, $3, $4)`,
+      [quantity, supplier_id, product_id, cost_price]
+    );
+
+    return res.status(200).json({
+      message: "Item quantity increased and transaction logged successfully",
+    });
   } catch (error) {
     console.error(error.message);
     return res.status(500).json({ error: error.message });
@@ -442,32 +436,146 @@ const createSupplier = async (req, res) => {
       .json({ message: "Internal Server Error", error: error.message });
   }
 };
+const createCustomer = async (req, res) => {
+  try {
+    const { supplier_name, contact_email } = req.body;
+
+    // Validate input: Ensure both supplier_name and email are provided
+    if (!supplier_name || !contact_email) {
+      return res
+        .status(400)
+        .json({ message: "Supplier name and email are required" });
+    }
+
+    // Check if the supplier already exists by email
+    const supplierExistsResult = await pool.query(CHECK_SUPPLIER_EXISTS, [
+      contact_email,
+    ]);
+
+    if (supplierExistsResult.rowCount > 0) {
+      return res.status(400).json({
+        message: "Supplier with this email already exists",
+      });
+    }
+
+    // Insert the new supplier into the database
+    const insertSupplierResult = await pool.query(INSERT_NEW_SUPPLIER, [
+      supplier_name,
+      contact_email,
+    ]);
+
+    // Create the supplier object to return in the response
+    const newSupplier = {
+      supplier_id: insertSupplierResult.rows[0].supplier_id,
+      supplier_name,
+      contact_email,
+      transaction_count: 0, // Assuming no transactions initially
+      created_at: new Date().toLocaleDateString("en-GB"), // Format: DD/MM/YYYY
+    };
+
+    // Respond with the created supplier details
+    return res.status(201).json({
+      message: "Supplier created successfully",
+      supplier: newSupplier,
+    });
+  } catch (error) {
+    console.error(error.message);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+const getTransactionList = async (req, res) => {
+  try {
+    // SQL query to fetch transaction details
+    const query = `
+      SELECT 
+        it.transaction_type, 
+        TO_CHAR(it.transaction_date, 'DD/MM/YYYY') AS transaction_date, 
+        s.supplier_name, 
+        it.quantity, 
+        p.product_name
+      FROM 
+        inventory_transactions it
+      JOIN 
+        suppliers s ON it.customer_id = s.customer_id
+      JOIN 
+        products p ON it.product_id = p.product_id
+      ORDER BY 
+        it.transaction_date DESC;
+    `;
+
+    // Execute the query
+    const result = await pool.query(query);
+
+    // If no transactions are found, return a message
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "No transactions found." });
+    }
+
+    // Return the list of transactions
+    return res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching transaction list:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal server error.", error: error.message });
+  }
+};
+
+const getAverageCostPrice = async (product_id) => {
+  const query = `
+    SELECT 
+        COALESCE(SUM(cost_price * quantity) / NULLIF(SUM(quantity), 0), 0) AS weighted_average_cp
+    FROM inventory_transactions
+    WHERE product_id = $1 AND transaction_type = 'purchase';
+  `;
+  const result = await pool.query(query, [product_id]);
+  return result.rows[0]?.weighted_average_cp || 0;
+};
+const getCostPrice = async (req, res) => {
+  try {
+    const { product_id } = req.body;
+    const avgCostPrice = await getAverageCostPrice(product_id);
+    const totalResult = await pool.query(GET_TOTAL_QUANTITY_OFITEM, [product_id]);
+    const totalAvailable = totalResult.rows[0]?.totalquantity || 0;
+    return res.json({ costPrice: avgCostPrice, totalAvailable: totalAvailable });
+  } catch (error) {
+    console.error("Error fetching transaction list:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal server error.", error: error.message });
+  }
+};
 
 const sellItems = async (req, res) => {
-  const { product_id, quantity, supplier_id } = req.body;
+  const { product_id, quantity, selling_price, customer_id } = req.body;
 
-  if (!product_id || !quantity || !supplier_id) {
+  // Validate input fields
+  if (!product_id || !quantity || !customer_id || !selling_price) {
     return res.status(400).json({ error: "All fields are required." });
   }
 
   const transactionType = "sell";
 
   try {
+    // Begin transaction
+    await pool.query("BEGIN");
+
     // Step 1: Check total available quantity in all locations
-    const totalQuery = `
-        SELECT SUM(quantity) as totalQuantity 
-        FROM inventory_items 
-        WHERE product_id = $1`;
+    const totalQuery = GET_TOTAL_QUANTITY_OFITEM;
     const totalResult = await pool.query(totalQuery, [product_id]);
-    const totalAvailable = totalResult.rows[0]?.totalquantity || 0;
+      const totalAvailable = totalResult.rows[0]?.totalquantity || 0;
 
     if (totalAvailable < quantity) {
+      await pool.query("ROLLBACK"); // Rollback if insufficient inventory
       return res
         .status(400)
         .json({ error: "Insufficient quantity in inventory." });
     }
 
-    // Step 2: Deduct quantity from inventory (starting with locations with higher stock)
+    // Step 2: Deduct quantity from inventory
     let remainingQuantity = quantity;
     const selectLocationsQuery = `
         SELECT inventory_item_id, quantity 
@@ -496,15 +604,28 @@ const sellItems = async (req, res) => {
     }
 
     // Step 3: Record transaction
+    const averageCostPrice = await getAverageCostPrice(product_id);
+
+    // Step 2: Business logic for selling price decision
+    if (selling_price < averageCostPrice) {
+      return res.status(400).json({
+        error: `Selling price is lower than the average cost price.`,
+      });
+    }
     const insertTransactionQuery = `
-        INSERT INTO inventory_transactions (quantity, transaction_type, supplier_id,product_id, transaction_date) 
-        VALUES ($1, $2, $3,$4, NOW())`;
+        INSERT INTO inventory_transactions (quantity, transaction_type, customer_id, product_id, transaction_date, selling_price, cost_price) 
+        VALUES ($1, $2, $3, $4, NOW(), $5, $6)`;
     await pool.query(insertTransactionQuery, [
       quantity,
       transactionType,
-      supplier_id,
+      customer_id,
       product_id,
+      selling_price,
+      averageCostPrice,
     ]);
+
+    // Commit transaction
+    await pool.query("COMMIT");
 
     // Step 4: Respond with success
     return res
@@ -512,45 +633,68 @@ const sellItems = async (req, res) => {
       .json({ message: "Items sold successfully and inventory updated." });
   } catch (error) {
     console.error("Error selling items:", error);
+    await pool.query("ROLLBACK"); // Rollback transaction on error
     return res.status(500).json({ error: "Internal server error." });
   }
 };
-
-const getTransactionList = async (req, res) => {
+const getCustomersWithoutPagination = async (req, res) => {
   try {
-    // SQL query to fetch transaction details
-    const query = `
-      SELECT 
-        it.transaction_type, 
-        TO_CHAR(it.transaction_date, 'DD/MM/YYYY') AS transaction_date, 
-        s.supplier_name, 
-        it.quantity, 
-        p.product_name
-      FROM 
-        inventory_transactions it
-      JOIN 
-        suppliers s ON it.supplier_id = s.supplier_id
-      JOIN 
-        products p ON it.product_id = p.product_id
-      ORDER BY 
-        it.transaction_date DESC;
-    `;
-
-    // Execute the query
-    const result = await pool.query(query);
-
-    // If no transactions are found, return a message
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: "No transactions found." });
-    }
-
-    // Return the list of transactions
-    return res.status(200).json(result.rows);
+    const result = await pool.query(`SELECT * FROM customers`);
+    if (result.rowCount === 0)
+      return res.status(400).json({ message: "No customers found" });
+    return res.status(200).json({ customers: result.rows });
   } catch (error) {
-    console.error("Error fetching transaction list:", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error.", error: error.message });
+    return res.status(500).json({ error: error.message });
+  }
+};
+const getSuppliersWithoutPagination = async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT * FROM suppliers`);
+    if (result.rowCount === 0)
+      return res.status(400).json({ message: "No suppliers found" });
+    return res.status(200).json({ suppliers: result.rows });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+const getLocationsWithoutPagination = async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT * FROM locations`);
+    if (result.rowCount === 0)
+      return res.status(400).json({ message: "No locations found" });
+    return res.status(200).json({ locations: result.rows });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+const getItemsWithoutPagination = async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT * FROM products`);
+    if (result.rowCount === 0)
+      return res.status(400).json({ message: "No products found" });
+    return res.status(200).json({ products: result.rows });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+const getCategoriesWithoutPagination = async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT * FROM categories`);
+    if (result.rowCount === 0)
+      return res.status(400).json({ message: "No categories found" });
+    return res.status(200).json({ categories: result.rows });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+const getTotalQuantity = async (req, res) => {
+  try {
+    const {product_id} = req.params
+    const totalResult = await pool.query(GET_TOTAL_QUANTITY_OFITEM, [product_id]);
+    const totalAvailable = totalResult.rows[0]?.totalquantity || 0;
+    return res.status(200).json({ "totalQuantity": totalAvailable });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -566,6 +710,13 @@ export {
   getAllSuppliers,
   getAllItems,
   createSupplier,
+  createCustomer,
   sellItems,
   getTransactionList,
+  getCostPrice,
+  getCustomersWithoutPagination,
+  getSuppliersWithoutPagination,
+  getLocationsWithoutPagination,
+  getItemsWithoutPagination,
+  getCategoriesWithoutPagination,
 };

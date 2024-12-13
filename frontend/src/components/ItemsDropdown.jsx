@@ -5,8 +5,12 @@ import {
   setSelectedLocation,
   setSelectedItem,
   setSelectedSupplier,
+  setSelectedCustomer,
+  setCostPrice,
+  setTotalAvailable
 } from "../slice/selectionSlice";
-
+import { fetchCostPriceApi } from "../utils/routes";
+import axios from 'axios'
 const ItemsDropdown = ({ type, items }) => {
   const dispatch = useDispatch();
 
@@ -19,23 +23,43 @@ const ItemsDropdown = ({ type, items }) => {
       ? state.selection.selectedItem
       : type === "Supplier" // Add Supplier case
       ? state.selection.selectedSupplier
-      : null
+      : type === "Customer"
+      ? state.selection.selectedCustomer
+      :null 
   );
 
-  const handleSelection = (e) => {
+  const handleSelection = async (e) => {
     const value = e.target.value;
     const selectedItem = items.find(
       (item) =>
         (type === "Location" && item.location_name === value) ||
         (type === "Category" && item.category_name === value) ||
         (type === "Product" && item.product_name === value) ||
-        (type === "Supplier" && item.supplier_name === value) // Add Supplier condition
+        (type === "Supplier" && item.supplier_name === value) ||
+        (type === "Customer" && item.customer_name === value)
     );
+  
     if (type === "Category") dispatch(setSelectedCategory(selectedItem));
     if (type === "Location") dispatch(setSelectedLocation(selectedItem));
-    if (type === "Product") dispatch(setSelectedItem(selectedItem));
-    if (type === "Supplier") dispatch(setSelectedSupplier(selectedItem)); // Dispatch setSelectedSupplier
+    if (type === "Product") {
+      dispatch(setSelectedItem(selectedItem));
+      try {
+        const response = await axios.post(fetchCostPriceApi, { product_id: selectedItem.product_id }, { withCredentials: true });
+        const { costPrice, totalAvailable } = response.data; 
+        if (response.status === 200) {
+          dispatch(setCostPrice(costPrice)); 
+          dispatch(setTotalAvailable(totalAvailable)); 
+        } else {
+          console.error(`Error: ${response.error}`);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+    if (type === "Supplier") dispatch(setSelectedSupplier(selectedItem));
+    if (type === "Customer") dispatch(setSelectedCustomer(selectedItem));
   };
+  
 
   return (
     <div className="dropdown">

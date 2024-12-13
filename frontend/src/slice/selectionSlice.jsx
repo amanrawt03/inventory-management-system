@@ -13,12 +13,15 @@ const safeParse = (key) => {
   }
 };
 
-const initialState = {
+const initialState = {  
   selectedCategory: safeParse("selectedCategory"),
   selectedLocation: safeParse("selectedLocation"),
   selectedItem: safeParse("selectedItem"),
   quantity: safeParse("quantity") || 0,
   selectedSupplier: safeParse("selectedSupplier"),
+  selectedCustomer: safeParse("selectedCustomer"),
+  costPrice: safeParse("costPrice") || 0,
+  totalAvailable: safeParse("totalAvailable") || 0,
 };
 
 const selectionSlice = createSlice({
@@ -53,11 +56,32 @@ const selectionSlice = createSlice({
         localStorage.setItem("quantity", JSON.stringify(quantity));
       }
     },
+    setCostPrice: (state, action) => {
+      const costPrice = Number(action.payload);
+      state.costPrice = costPrice;
+      if (costPrice !== undefined) {
+        localStorage.setItem("costPrice", JSON.stringify(costPrice));
+      }
+    },
+    setTotalAvailable: (state, action) => {
+      const totalAvailable = Number(action.payload);
+      state.totalAvailable = totalAvailable;
+      if (totalAvailable !== undefined) {
+        localStorage.setItem("totalAvailable", JSON.stringify(totalAvailable));
+      }
+    },
     setSelectedSupplier: (state, action) => {
       const supplier = action.payload;
       state.selectedSupplier = supplier;
       if (supplier !== undefined) {
         localStorage.setItem("selectedSupplier", JSON.stringify(supplier));
+      }
+    },
+    setSelectedCustomer: (state, action) => {
+      const customer = action.payload;
+      state.selectedCustomer = customer;
+      if (customer !== undefined) {
+        localStorage.setItem("selectedCustomer", JSON.stringify(customer));
       }
     },
     resetState: (state) => {
@@ -67,12 +91,17 @@ const selectionSlice = createSlice({
         selectedItem: null,
         quantity: 0,
         selectedSupplier: null,
+        selectedCustomer: null,
+        costPrice: 0,
       });
       localStorage.removeItem("selectedCategory");
       localStorage.removeItem("selectedLocation");
       localStorage.removeItem("selectedItem");
       localStorage.removeItem("quantity");
       localStorage.removeItem("selectedSupplier");
+      localStorage.removeItem("selectedCustomer");
+      localStorage.removeItem("costPrice");
+      localStorage.removeItem("totalAvailable");
     },
   },
 });
@@ -82,7 +111,10 @@ export const {
   setSelectedLocation,
   setSelectedItem,
   setQuantity,
+  setCostPrice,
   setSelectedSupplier,
+  setSelectedCustomer,
+  setTotalAvailable,
   resetState,
 } = selectionSlice.actions;
 

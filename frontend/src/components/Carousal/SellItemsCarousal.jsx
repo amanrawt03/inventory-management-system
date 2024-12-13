@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import SelectItem from "./SelectItem";
-import SelectSupplier from "./SelectSupplier";
+import SelectCustomer from "./SelectCustomer";
 import SellItemsProgressBar from "../Progress-bars/SellItemsProgressBar";
 import ConfirmTransaction from "./ConfirmTransaction";
-
+// import SelectSupplier from './SelectSupplier'
 const SellItemsCarousal = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
+    <SelectCustomer key="SelectCustomer" />,
+    // <SelectSupplier key="SelectCustomer" />,
     <SelectItem key="selectItem" />,
-    <SelectSupplier key="selectSupplier" />,
     <ConfirmTransaction
       key="selectQuantity"
       onTransactionComplete={() => setCurrentSlide(0)} // Reset slide

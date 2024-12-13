@@ -1,84 +1,86 @@
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, {useState} from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { sellItemsApi } from "../../utils/routes";
+import { clearCart } from "../../slice/cartSlice";
+import { resetState } from "../../slice/selectionSlice";
 import { toast } from "react-toastify";
-import { resetState } from "../../slice/selectionSlice"
-
+import { MdDelete } from "react-icons/md";
+import { MdEditSquare } from "react-icons/md";
+import UpdateItemModal from "../../modals/UpdateItemModal";
+import { removeCartItem } from "../../slice/cartSlice";
 const ConfirmTransaction = ({ onTransactionComplete }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
+  const cartItems = useSelector((state) => state.cart.cartItems);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [currItem, setCurrItem] = useState(false);
 
-  const { selectedItem, selectedSupplier, quantity } = useSelector(
-    (state) => state.selection
-  );
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-
-  useEffect(() => {
-    if (selectedItem && selectedSupplier && quantity !== undefined) {
-      setIsLoading(false);
-    }
-  }, [selectedItem, selectedSupplier, quantity]);
-
-  const handleOnConfirm = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setSuccessMessage(null);
-
-      const payload = {
-        product_id: selectedItem.product_id,
-        quantity,
-        supplier_id: selectedSupplier.supplier_id,
-      };
-
-      const response = await axios.post(sellItemsApi, payload);
-      setSuccessMessage(response.data.message);
-      toast.success("Transaction Successful");
-
-      // Reset the Redux store and notify parent
-      dispatch(resetState());
-      onTransactionComplete(); // Callback to reset the slide
-    } catch (err) {
-      setError(err.response?.data?.error || "Something went wrong!");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleEditOrder = (item)=>{
+    setShowOrderModal(true)
+    setCurrItem(item)
+  }
+  const handleDeleteOrder = (product_id)=>{
+    dispatch(removeCartItem({orderId:product_id}))
+  }
+  const handlePlaceOrder = () => {
+    dispatch(clearCart());
+    dispatch(resetState());
+    toast.success("Cart cleared successfully");
+    onTransactionComplete();
   };
-
-  if (isLoading) {
+  if (cartItems.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center h-52">
-        <div className="spinner-border animate-spin border-4 border-t-4 border-primary w-8 h-8 rounded-full"></div>
-        <small className="mt-4">Fill all fields before proceeding</small>
+        <small className="mt-4">No Items selected so far</small>
       </div>
     );
   }
-
   return (
-    <div className="transaction-confirmation bg-white shadow-lg rounded-lg p-6 max-w-md mx-auto mt-12">
-      <h4 className="text-xl font-semibold text-gray-800 mb-4">
-        {quantity} {selectedItem.product_name} sold to{" "}
-        {selectedSupplier.supplier_name}
-      </h4>
-      <p className="text-gray-600 mb-6">
-        Click the button below to confirm the transaction.
-      </p>
-      <button
-        className="btn btn-primary w-full py-3 text-white text-lg font-semibold rounded-md transition-all duration-300 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        onClick={handleOnConfirm}
-      >
-        Confirm
-      </button>
-      {error && (
-        <p className="text-red-600 text-center mt-4 font-semibold">{error}</p>
-      )}
-      {successMessage && (
-        <p className="text-green-600 text-center mt-4 font-semibold">
-          {successMessage}
-        </p>
+    <div>
+      <h1 className="text-2xl font-bold mb-6">
+        Confirm Your Order for {cartItems[0].customer_name}
+      </h1>
+      {cartItems.length > 0 ? (
+        <>
+          <table className="table-auto w-full">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Quantity</th>
+                <th>Cost Price</th>
+                <th>Selling Price</th>
+                <th>Total Cost</th>
+                <th>Total Selling</th>
+                <th>Options</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cartItems.map((item) => (
+                <tr key={item.product_id}>
+                  <td>{item.product_name}</td>
+                  <td >{item.quantity}</td>
+
+                  <td>{item.cost_price}</td>
+                  <td>{item.selling_price}</td>
+                  <td>{item.total_cost}</td>
+                  <td>{item.total_selling}</td>
+                  <td>
+                    <div className="flex m-2 ml-8">
+                      <MdEditSquare className="mr-3" onClick={()=>handleEditOrder(item)}/>
+                      <MdDelete onClick={()=>handleDeleteOrder(item.product_id)}/>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={handlePlaceOrder} className="btn btn-primary">
+            Confirm Order
+          </button>
+          {showOrderModal && (
+            <UpdateItemModal setShowOrderModal={setShowOrderModal} item = {currItem} type={"Update"}/>
+          )}
+        </>
+      ) : (
+        <p>No items in cart</p>
       )}
     </div>
   );

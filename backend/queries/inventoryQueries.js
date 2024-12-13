@@ -131,3 +131,9 @@ export const CHECK_SUPPLIER_EXISTS = `SELECT * FROM suppliers WHERE contact_emai
 export const INSERT_NEW_SUPPLIER = `INSERT INTO suppliers (supplier_name, contact_email)
 VALUES ($1, $2)
 RETURNING supplier_id;`;
+
+
+export const GET_TOTAL_QUANTITY_OFITEM = `
+        SELECT SUM(quantity) as totalquantity 
+        FROM inventory_items 
+        WHERE product_id = $1`
