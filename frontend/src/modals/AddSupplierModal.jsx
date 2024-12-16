@@ -2,24 +2,20 @@ import React, { useState } from "react";
 import axios from "axios";
 import { createSupplierApi } from "../utils/routes"; // Ensure you have the correct API route
 import { toast } from "react-toastify";
-const AddSupplierModal = ({ addSupplier }) => {
+import { useDispatch } from "react-redux";
+import { setSelectedSupplier } from "../slice/selectionSlice";
+const AddSupplierModal = ({addSupplier}) => {
   const [supplierName, setSupplierName] = useState("");
   const [email, setEmail] = useState("");
-
+  const dispatch = useDispatch();
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (supplierName.trim() === "" || email.trim() === "") {
       toast.error("Supplier Name and Email are required");
       return;
     }
-  
-    // Log the values before making the request
-    console.log("Sending data to the server:", {
-      supplier_name: supplierName,
-      contact_email: email,
-    });
-  
+
     try {
       // Send a POST request to create a new supplier
       const response = await axios.post(
@@ -27,10 +23,10 @@ const AddSupplierModal = ({ addSupplier }) => {
         { supplier_name: supplierName, contact_email: email },
         { withCredentials: true }
       );
-  
-      addSupplier(response.data.supplier);
+      addSupplier(response.data.supplier)
+      dispatch(setSelectedSupplier(response.data.supplier));
       document.getElementById("add_supplier_modal").close();
-      toast.success('Supplier Added Successfully');
+      toast.success("Supplier Added Successfully");
       setSupplierName("");
       setEmail("");
     } catch (error) {
@@ -38,7 +34,6 @@ const AddSupplierModal = ({ addSupplier }) => {
       toast.error(`Error: ${error.response?.data?.message || error.message}`);
     }
   };
-  
 
   return (
     <dialog id="add_supplier_modal" className="modal">

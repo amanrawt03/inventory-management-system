@@ -2,25 +2,36 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { addToCart, updateCartItem } from "../slice/cartSlice";
+import { clearItem } from "../slice/selectionSlice";
+import { selectCartItemsByType } from "../slice/cartSlice";
 
 const UpdateItemModal = ({ setShowOrderModal, item, type }) => {
   const [quantity, setQuantityState] = useState(0);
   const [sellPrice, setSellPrice] = useState(0);
 
   const dispatch = useDispatch();
-  const cartItems = useSelector((state) => state.cart.cartItems);
+  const cartItems = useSelector(selectCartItemsByType("sell"));
   const currentCustomer = useSelector(
     (state) => state.selection.selectedCustomer
   );
-  const costPrice = useSelector((state) => state.selection.costPrice);
-  const totalAvailable = useSelector((state) => state.selection.totalAvailable);
 
-  useEffect(()=>{
-    if(type === "Update"){
-        setQuantityState(item.quantity)
-        setSellPrice(item.quantity)
+  // Conditionally determine costPrice and totalAvailable
+  const costPrice =
+    type === "Update" && item
+      ? item.cost_price
+      : useSelector((state) => state.selection.costPrice);
+  const totalAvailable =
+    type === "Update" && item
+      ? item.total_available
+      : useSelector((state) => state.selection.totalAvailable);
+
+  useEffect(() => {
+    if (type === "Update" && item) {
+      setQuantityState(item.quantity);
+      setSellPrice(item.selling_price);
     }
-  }, [])
+  }, [type, item]);
+
   const handleSave = () => {
     if (!item) {
       toast.error("Please select an item first");
@@ -41,37 +52,38 @@ const UpdateItemModal = ({ setShowOrderModal, item, type }) => {
       return;
     }
 
-    // Create cart item object
     const cartItem = {
       product_id: item.product_id,
       product_name: item.product_name,
       customer_name: currentCustomer.customer_name,
+      customer_id: currentCustomer.customer_id,
       quantity,
       cost_price: costPrice,
       selling_price: sellPrice,
       total_cost: costPrice * quantity,
       total_selling: sellPrice * quantity,
+      total_available: totalAvailable,
     };
-
     if (type === "Save") {
-      if (cartItems.find((order) => order.product_id === cartItem.product_id)) {
+      if (
+        cartItems.find(
+          (order) =>
+            order.product_id === cartItem.product_id && order.type === "sell"
+        )
+      ) {
         toast.error("Product already exists in cart");
-        return;
+      } else {
+        dispatch(addToCart({ newOrder: cartItem, type: "sell" }));
+        toast.success(
+          `${item.product_name} ${type}d successfully with quantity ${quantity} and selling price ${sellPrice}`
+        );
       }
-      dispatch(addToCart({ newOrder: cartItem }));
-    }else{
-        dispatch(updateCartItem(cartItem))
+    } else {
+      dispatch(updateCartItem({ updatedOrder: cartItem, type: "sell" }));
     }
 
-    // Show success toast
-    toast.success(
-      `${item.product_name} ${type}d to cart with quantity ${quantity} and selling price ${sellPrice}`
-    );
-
-    // Reset UI state
+    dispatch(clearItem());
     setShowOrderModal(false);
-    setQuantityState(0);
-    setSellPrice(0);
   };
 
   const handleQuantityChange = (e) => {
@@ -79,50 +91,60 @@ const UpdateItemModal = ({ setShowOrderModal, item, type }) => {
     if (currentQuantity > totalAvailable) {
       toast.error("Quantity exceeds available stock.");
       setQuantityState(totalAvailable);
-    } else if (currentQuantity < 0) {
-      setQuantityState(0);
     } else {
-      setQuantityState(currentQuantity);
+      setQuantityState(Math.max(0, currentQuantity));
     }
   };
 
   const handleSellPriceChange = (e) => {
     setSellPrice(Number(e.target.value));
   };
+
   return (
-    <div className="my-4 p-4 border border-gray-300 rounded-md">
-      <h3 className="text-lg font-semibold">Available: {totalAvailable}</h3>
-      <h3 className="text-lg font-semibold">Enter Quantity:</h3>
-      <input
-        type="number"
-        value={quantity}
-        onChange={handleQuantityChange}
-        className="input input-bordered w-full my-2"
-        placeholder="Enter quantity"
-      />
-      <div className="my-4 p-4 border border-gray-300 rounded-md">
-        <h3 className="text-lg font-semibold">Cost Price: {costPrice}</h3>
-        <h3 className="text-lg font-semibold">Enter Selling Price:</h3>
-        <input
-          type="number"
-          value={sellPrice}
-          onChange={handleSellPriceChange}
-          className="input input-bordered w-full my-2"
-          placeholder="Enter selling price"
-        />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg w-96 p-6 relative">
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+          onClick={() => setShowOrderModal(false)}
+        >
+          &times;
+        </button>
+        <h1 className="text-2xl font-bold text-center mb-4">{type} Item</h1>
+        <div className="my-4 p-4 border border-gray-300 rounded-md">
+          <h3 className="text-lg font-semibold">
+            Available Stock: {totalAvailable}
+          </h3>
+          <h3 className="text-lg font-semibold">Enter Quantity:</h3>
+          <input
+            type="number"
+            value={quantity}
+            onChange={handleQuantityChange}
+            className="input input-bordered w-full my-2"
+            placeholder="Enter quantity"
+          />
+          <h3 className="text-lg font-semibold">Cost Price: {costPrice}</h3>
+          <h3 className="text-lg font-semibold">Enter Selling Price:</h3>
+          <input
+            type="number"
+            value={sellPrice}
+            onChange={handleSellPriceChange}
+            className="input input-bordered w-full my-2"
+            placeholder="Enter selling price"
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          className="btn btn-primary w-full"
+          disabled={
+            quantity <= 0 ||
+            sellPrice <= 0 ||
+            quantity > totalAvailable ||
+            sellPrice < costPrice
+          }
+        >
+          {type}
+        </button>
       </div>
-      <button
-        onClick={handleSave}
-        className="btn btn-primary w-full"
-        disabled={
-          quantity <= 0 ||
-          sellPrice <= 0 ||
-          quantity > totalAvailable ||
-          sellPrice < costPrice
-        }
-      >
-        {type}
-      </button>
     </div>
   );
 };

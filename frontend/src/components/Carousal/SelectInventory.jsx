@@ -2,14 +2,25 @@ import React, { useEffect, useState } from "react";
 import ItemsDropdown from "../ItemsDropdown";
 import AddLocationModal from "../../modals/AddLocationModal";
 import { useSelector, useDispatch } from "react-redux";
-import { setSelectedLocation } from "../../slice/selectionSlice"; 
+import { fetchLocationsList } from "../../utils/routes";
+import axios from "axios";
 const SelectInventory = () => {
   const [active, setActive] = useState(true);
-  const dispatch = useDispatch()
-  const addLocation = (newLocation) => {
-    dispatch(setSelectedLocation(newLocation));
-  };
-  const locations = useSelector((state) => state.data.locations);
+
+  const [locations, setLocations] = useState([])
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const response = await axios.get(fetchLocationsList);
+        setLocations(response.data.locations);
+      } catch (err) {
+        console.error("Error fetching suppliers:", err);
+      }
+    };
+
+    fetchSuppliers();
+  }, []);
+
   const selectedLocation = useSelector(
     (state) => state.selection.selectedLocation
   );
@@ -47,7 +58,7 @@ const SelectInventory = () => {
         </button>
 
         {/* Add Location Modal */}
-        <AddLocationModal addLocation={addLocation} />
+        <AddLocationModal/>
       </div>
     </div>
   );

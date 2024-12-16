@@ -9,11 +9,11 @@ const SellItemsCarousal = () => {
 
   const slides = [
     <SelectCustomer key="SelectCustomer" />,
-    // <SelectSupplier key="SelectCustomer" />,
     <SelectItem key="selectItem" />,
     <ConfirmTransaction
       key="selectQuantity"
-      onTransactionComplete={() => setCurrentSlide(0)} // Reset slide
+      onTransactionComplete={() => setCurrentSlide(0)} 
+      type={"sell"}
     />,
   ];
 

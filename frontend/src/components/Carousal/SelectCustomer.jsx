@@ -4,6 +4,7 @@ import AddCustomerModal from "../../modals/AddCustomerModal"; // Modal for addin
 import { useSelector } from "react-redux";
 import { setSelectedCustomer } from "../../slice/selectionSlice"; // Action to set the selected customer
 import { fetchCustomersList } from "../../utils/routes";
+
 import axios from "axios";
 const SelectCustomer = () => {
   const [customers,setCustomers] = useState([])
@@ -55,7 +56,7 @@ const SelectCustomer = () => {
         </button>
 
         {/* Add Customer Modal */}
-        <AddCustomerModal addCustomer={addCustomer} />
+        <AddCustomerModal />
       </div>
     </div>
   );

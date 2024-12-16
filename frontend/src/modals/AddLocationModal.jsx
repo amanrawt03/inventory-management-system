@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { createLocationApi } from "../utils/routes"; // Ensure you have the correct API route
-import { toast } from 'react-toastify';
-const AddLocationModal = ({ addLocation }) => {
+import { toast } from "react-toastify";
+import { setSelectedLocation } from "../slice/selectionSlice";
+import { useDispatch } from "react-redux";
+const AddLocationModal = () => {
+  const dispatch = useDispatch();
   const [locationName, setLocationName] = useState("");
 
   const handleSubmit = async (e) => {
@@ -18,9 +21,7 @@ const AddLocationModal = ({ addLocation }) => {
       );
       // Assuming the response contains the full location object
       const locationData = response.data.location;
-
-      // Call the parent function to update the list
-      addLocation(locationData);  // Add the full location object
+      dispatch(setSelectedLocation(locationData));
 
       // Close the modal and clear the input
       document.getElementById("add_location_modal").close();
@@ -28,6 +29,7 @@ const AddLocationModal = ({ addLocation }) => {
       setLocationName("");
     } catch (error) {
       console.error("Error adding location:", error);
+      toast.error(`Error: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -37,7 +39,7 @@ const AddLocationModal = ({ addLocation }) => {
         <h3 className="font-bold text-lg">Add New Location</h3>
         <form onSubmit={handleSubmit} className="mt-4">
           <input
-            type="text"                   
+            type="text"
             placeholder="Location Name"
             className="input input-bordered w-full mb-4"
             value={locationName}

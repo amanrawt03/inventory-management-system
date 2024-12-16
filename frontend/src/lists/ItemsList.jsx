@@ -56,7 +56,7 @@ const ItemsList = () => {
   };
 
   return (
-    <div className="bg-base-200 min-h-screen flex">
+    <div className="bg-base-200 min-h-screen flex relative">
       <div className="w-full p-6 ml-10">
         <h1 className="text-4xl font-bold text-gray-800 mb-8">Items List</h1>
 
@@ -112,28 +112,30 @@ const ItemsList = () => {
           </table>
         </div>
 
-        <ReactPaginate
-          previousLabel={
-            <button className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-focus transition-colors">
-              Previous
-            </button>
-          }
-          nextLabel={
-            <button className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-focus transition-colors">
-              Next
-            </button>
-          }
-          breakLabel={<span className="px-2 text-gray-500">...</span>}
-          pageCount={totalPages}
-          marginPagesDisplayed={1}
-          pageRangeDisplayed={3}
-          onPageChange={handlePageChange}
-          containerClassName="flex justify-center items-center bottom-0 left-0 w-full bg-base-100 py-4 shadow-md space-x-2"
-          pageClassName="inline-block"
-          pageLinkClassName="px-3 py-2 bg-white text-primary border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-          activeClassName="bg-primary text-white"
-          activeLinkClassName="bg-primary text-white rounded-md"
-        />
+        <div className="absolute bottom-0 left-0  w-full">
+          <ReactPaginate
+            breakLabel={<span className="px-1 text-gray-800">...</span>}
+            pageCount={totalPages}
+            marginPagesDisplayed={1}
+            pageRangeDisplayed={3}
+            onPageChange={handlePageChange}
+            forcePage={currentPage - 1}
+            containerClassName="flex justify-center space-x-2"
+            pageClassName="inline-block"
+            pageLinkClassName="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100"
+            activeClassName="bg-gray-100 text-white" // Highlight active page
+            previousLabel={
+              <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
+                Previous
+              </span>
+            }
+            nextLabel={
+              <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
+                Next
+              </span>
+            }
+          />
+        </div>
       </div>
     </div>
   );

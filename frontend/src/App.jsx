@@ -10,8 +10,9 @@ import SuppliersList from "./lists/SuppliersList";
 import ItemsList from "./lists/ItemsList";
 import LocationsList from "./lists/LocationsList";
 import { ToastContainer, toast } from "react-toastify";
-import TransactionsPage from "./pages/TransactionsPage";
+import PurchaseTransactionPage from "./pages/PurchaseTransactionPage";
 import Layout from './components/Layout'
+import SellTransactionPage from "./pages/SellTransactionPage";
 function App() {
   const showToast = () => {
     toast.success("This is a success message!", {
@@ -40,8 +41,12 @@ function App() {
             element={<SellItemsPage showToast={showToast} />}
           />
           <Route
-            path="/transactions"
-            element={<TransactionsPage showToast={showToast} />}
+            path="/sellTransactions"
+            element={<SellTransactionPage showToast={showToast} />}
+          />
+          <Route
+            path="/purchaseTransactions"
+            element={<PurchaseTransactionPage showToast={showToast} />}
           />
           <Route
             path="/list/Categories"

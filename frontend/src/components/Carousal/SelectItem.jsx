@@ -11,12 +11,12 @@ const SelectItem = () => {
   useEffect(() => {
     async function fetchData() {
       const response = await axios.get(fetchProductsList);
-      setItems(response.data.products);
+      setItems(response.data.items);
     }
     fetchData();
   }, []);
   useEffect(() => {
-    setShowOrderModal(!!currentItem);
+    if(currentItem)setShowOrderModal(true);
   }, [currentItem]);
 
   return (

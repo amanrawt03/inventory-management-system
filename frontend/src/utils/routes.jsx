@@ -1,23 +1,36 @@
 const api = "http://localhost:3000/api";
 const login = `${api}/auth/login`;
-const fetchCategoriesApi = `${api}/inventory/category/all`;
-const fetchItemsApi = `${api}/inventory/items/all`;
-const fetchSuppliersApi = `${api}/inventory/suppliers/all`;
-const fetchLocationsApi = `${api}/inventory`;
-const createCategoryApi = `${api}/inventory/createCategory`;
-const createSupplierApi = `${api}/inventory/createSupplier`;
-const createLocationApi = `${api}/inventory/createLocation`;
-const createItemApi = `${api}/inventory/createItem`;
-const addToExisitingItem = `${api}/inventory/addToExistingItem`;
-const sellItemsApi = `${api}/inventory/sellItems`;
-const fetchTransactionsApi = `${api}/inventory/transactions/all`;
-const fetchCostPriceApi = `${api}/inventory/price/costPrice`;
 
-const fetchCustomersList = `${api}/inventory/customers/noPagination`;
-const fetchSuppliersList = `${api}/inventory/suppliers/noPagination`;
-const fetchLocationsList = `${api}/inventory/locations/noPagination`;
-const fetchProductsList = `${api}/inventory/products/noPagination`;
-const fetchCategoriesList = `${api}/inventory/categories/noPagination`;
+// location
+const fetchLocationsApi = `${api}/inventory/paginate`;
+const fetchLocationsList = `${api}/inventory`;
+const createLocationApi = `${api}/inventory`;
+
+// product
+const fetchCostPriceApi = `${api}/product/costPrice`;
+const fetchItemsApi = `${api}/product/paginate`;
+const fetchProductsList = `${api}/product`;
+const addNewProductApi = `${api}/product`;
+
+// category
+const createCategoryApi = `${api}/category`;
+const fetchCategoriesList = `${api}/category`;
+const fetchCategoriesApi = `${api}/category/paginate`;
+
+// supplier
+const fetchSuppliersApi = `${api}/supplier/paginate`;
+const fetchSuppliersList = `${api}/supplier`;
+const createSupplierApi = `${api}/supplier`;
+
+// customer
+const fetchCustomersList = `${api}/customer`;
+const createCustomerApi = `${api}/customer`
+
+// transaction
+const sellItemsApi = `${api}/transaction/sellItems`;
+const purchaseItemsApi = `${api}/transaction/purchaseItems`;
+const sellingTransactionApi = `${api}/transaction/sellingTransaction`;
+const purchaseTransactionApi = `${api}/transaction/purchaseTransaction`;
 
 export {
   login,
@@ -28,15 +41,16 @@ export {
   createCategoryApi,
   createSupplierApi,
   createLocationApi,
-  createItemApi,
-  addToExisitingItem,
+  purchaseItemsApi,
+  createCustomerApi,
   sellItemsApi,
-  fetchTransactionsApi,
-  fetchCostPriceApi,
-  
+  fetchCostPriceApi,  
   fetchCustomersList,
   fetchSuppliersList,
   fetchLocationsList,
   fetchProductsList,
   fetchCategoriesList,
+  addNewProductApi,
+  sellingTransactionApi,
+  purchaseTransactionApi
 };

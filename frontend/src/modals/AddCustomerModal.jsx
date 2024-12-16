@@ -1,56 +1,53 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { createSupplierApi } from "../utils/routes"; // Ensure you have the correct API route
+import { createCustomerApi } from "../utils/routes"; // Ensure you have the correct API route
 import { toast } from "react-toastify";
-const AddCustomerModal = ({ addSupplier }) => {
-  const [supplierName, setSupplierName] = useState("");
+import { useDispatch } from "react-redux";
+import { setSelectedCustomer } from "../slice/selectionSlice";
+
+const AddCustomerModal = () => {
+  const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
+  const dispatch = useDispatch();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    if (supplierName.trim() === "" || email.trim() === "") {
-      toast.error("Supplier Name and Email are required");
+
+    if (customerName.trim() === "" || email.trim() === "") {
+      toast.error("Customer Name and Email are required");
       return;
     }
-  
-    // Log the values before making the request
-    console.log("Sending data to the server:", {
-      supplier_name: supplierName,
-      contact_email: email,
-    });
-  
+
     try {
-      // Send a POST request to create a new supplier
+      // Send a POST request to create a new customer
       const response = await axios.post(
-        createSupplierApi,
-        { supplier_name: supplierName, contact_email: email },
+        createCustomerApi,
+        { customer_name: customerName, customer_email: email },
         { withCredentials: true }
       );
-  
-      addSupplier(response.data.supplier);
-      document.getElementById("add_supplier_modal").close();
-      toast.success('Supplier Added Successfully');
-      setSupplierName("");
+
+      dispatch(setSelectedCustomer(response.data.customer));
+      document.getElementById("add_customer_modal").close();
+      toast.success("Customer Added Successfully");
+      setCustomerName("");
       setEmail("");
     } catch (error) {
-      console.error("Error adding supplier:", error);
+      console.error("Error adding customer:", error);
       toast.error(`Error: ${error.response?.data?.message || error.message}`);
     }
   };
-  
 
   return (
-    <dialog id="add_supplier_modal" className="modal">
+    <dialog id="add_customer_modal" className="modal">
       <div className="modal-box">
-        <h3 className="font-bold text-lg">Add New Supplier</h3>
+        <h3 className="font-bold text-lg">Add New Customer</h3>
         <form onSubmit={handleSubmit} className="mt-4">
           <input
             type="text"
-            placeholder="Supplier Name"
+            placeholder="Customer Name"
             className="input input-bordered w-full mb-4"
-            value={supplierName}
-            onChange={(e) => setSupplierName(e.target.value)}
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
           />
           <input
             type="email"
@@ -67,7 +64,7 @@ const AddCustomerModal = ({ addSupplier }) => {
               type="button"
               className="btn"
               onClick={() =>
-                document.getElementById("add_supplier_modal").close()
+                document.getElementById("add_customer_modal").close()
               }
             >
               Cancel
@@ -77,6 +74,6 @@ const AddCustomerModal = ({ addSupplier }) => {
       </div>
     </dialog>
   );
-};  
+};
 
 export default AddCustomerModal;

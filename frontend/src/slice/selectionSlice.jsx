@@ -13,7 +13,7 @@ const safeParse = (key) => {
   }
 };
 
-const initialState = {  
+const initialState = {
   selectedCategory: safeParse("selectedCategory"),
   selectedLocation: safeParse("selectedLocation"),
   selectedItem: safeParse("selectedItem"),
@@ -84,6 +84,36 @@ const selectionSlice = createSlice({
         localStorage.setItem("selectedCustomer", JSON.stringify(customer));
       }
     },
+    clearItem: (state) => {
+      Object.assign(state, {
+        selectedItem: null,
+      });
+      localStorage.removeItem("selectedItem");
+    },
+    clearCustomer: (state) => {
+      Object.assign(state, {
+        selectedCustomer: null,
+      });
+      localStorage.removeItem("selectedCustomer");
+    },
+    clearSupplier: (state) => {
+      Object.assign(state, {
+        selectedSupplier: null,
+      });
+      localStorage.removeItem("selectedSupplier");
+    },
+    clearLocation: (state) => {
+      Object.assign(state, {
+        selectedLocation: null,
+      });
+      localStorage.removeItem("selectedLocation");
+    },
+    clearCategory: (state) => {
+      Object.assign(state, {
+        selectedCategory: null,
+      });
+      localStorage.removeItem("selectedCategory");
+    },
     resetState: (state) => {
       Object.assign(state, {
         selectedCategory: null,
@@ -110,12 +140,17 @@ export const {
   setSelectedCategory,
   setSelectedLocation,
   setSelectedItem,
-  setQuantity,
+  setQuantity,  
   setCostPrice,
   setSelectedSupplier,
   setSelectedCustomer,
   setTotalAvailable,
   resetState,
+  clearItem,
+  clearCustomer,
+  clearSupplier,
+  clearLocation,
+  clearCategory
 } = selectionSlice.actions;
 
 export default selectionSlice.reducer;

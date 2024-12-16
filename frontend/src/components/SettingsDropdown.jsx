@@ -13,7 +13,6 @@ const SettingsDropdown = ({ isSorted, setIsSorted, listType }) => {
       setType(null);
     }
   });
-
   return (
     <div className="relative mr-3">
       <IoSettingsSharp

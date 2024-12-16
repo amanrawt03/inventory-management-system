@@ -1,29 +1,27 @@
 import React, { useEffect, useState } from "react";
+import ReactPaginate from "react-paginate";
 import { useSelector } from "react-redux";
 import AddSupplierModal from "../modals/AddSupplierModal";
-import { fetchSuppliersApi } from "../utils/routes";
 import axios from "axios";
-import ReactPaginate from "react-paginate"; // Importing React Paginate
-import SettingsDropdown from '../components/SettingsDropdown'
+import { fetchSuppliersApi } from "../utils/routes";
+import SettingsDropdown from "../components/SettingsDropdown";
+
 const SuppliersList = () => {
   const [suppliersList, setSuppliersList] = useState([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
-  const suppliers = useSelector((state) => state.data.suppliers);
-  const [isSorted, setIsSorted] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [totalPages, setTotalPages] = useState(1); // Total pages from the API
-  const [currentPage, setCurrentPage] = useState(1); // Current page state (API expects 1-based index)
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSorted, setIsSorted] = useState(false);
+  const reduxSuppliers = useSelector((state) => state.data.suppliers);
 
   // Fetch suppliers from API
-  const fetchSuppliers = async (page = 1) => {
+  const fetchSuppliers = async (page) => {
     try {
-      const response = await axios.get(fetchSuppliersApi, {
-        params: { page },
-      });
-      const { suppliers, totalPages } = response.data;
-      setSuppliersList(suppliers);
-      setFilteredSuppliers(suppliers);
-      setTotalPages(totalPages);
+      const { data } = await axios.get(fetchSuppliersApi, { params: { page } });
+      setSuppliersList(data.suppliers);
+      setFilteredSuppliers(data.suppliers);
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error("Error fetching suppliers:", error);
     }
@@ -31,54 +29,45 @@ const SuppliersList = () => {
 
   useEffect(() => {
     fetchSuppliers(currentPage);
-  }, [currentPage]);
+    setFilteredSuppliers(reduxSuppliers);
+  }, [reduxSuppliers, currentPage]);
 
+  // Filter and sort suppliers
   useEffect(() => {
-    setSuppliersList(suppliers);
-    setFilteredSuppliers(suppliers);
-  }, [suppliers]);
-
-  useEffect(() => {
-    if (isSorted) {
-      setFilteredSuppliers((prevItems) =>
-        [...prevItems].sort((a, b) =>
-          a.supplier_name.localeCompare(b.supplier_name)
-        )
-      );
-    } else {
-      setFilteredSuppliers(suppliersList); // Restore original order
-    }
-  }, [isSorted, suppliersList]);
-
-  useEffect(() => {
-    const filtered = suppliersList.filter((supplier) =>
+    let filtered = suppliersList.filter((supplier) =>
       supplier.supplier_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    if (isSorted) {
+      filtered = [...filtered].sort((a, b) =>
+        a.supplier_name.localeCompare(b.supplier_name)
+      );
+    }
     setFilteredSuppliers(filtered);
-  }, [searchTerm, suppliersList]);
+  }, [searchTerm, suppliersList, isSorted]);
 
+  // Add a new supplier
   const addSupplier = (newSupplier) => {
-    setSuppliersList((prevItems) => [...prevItems, newSupplier]);
-    setSearchTerm(""); // Reset search term after adding
+    setSuppliersList((prev) => [...prev, newSupplier]);
+    setSearchTerm(""); // Reset search
   };
 
+  // Pagination handler
+  const handlePageChange = ({ selected }) => {
+    setCurrentPage(selected + 1);
+  };
+
+  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  };
-
-  const handlePageChange = (selectedPage) => {
-    setCurrentPage(selectedPage.selected + 1); // ReactPaginate is 0-indexed, so we add 1
+    return date.toLocaleDateString("en-GB");
   };
 
   return (
-    <div className="bg-base-200 min-h-screen flex">
+    <div className="bg-base-200 min-h-screen flex relative">
       <div className="w-full p-6 ml-10">
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">Suppliers List</h1>
+        <h1 className="text-4xl font-bold text-gray-800 mb-8">
+          Suppliers List
+        </h1>
 
         {/* Search and Sort Options */}
         <div className="mb-6 flex items-center justify-between">
@@ -89,7 +78,11 @@ const SuppliersList = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="input input-bordered w-full max-w-md"
           />
-          <SettingsDropdown isSorted={isSorted} setIsSorted={setIsSorted} listType={"supplier"}/>
+          <SettingsDropdown
+            listType={"supplier"}
+            isSorted={isSorted}
+            setIsSorted={setIsSorted}
+          />
         </div>
 
         {/* Supplier Table */}
@@ -112,7 +105,9 @@ const SuppliersList = () => {
                       index % 2 === 0 ? "bg-gray-100" : "bg-white"
                     } hover:bg-gray-200`}
                   >
-                    <td className="py-3 px-4">{index + 1}</td>
+                    <td className="py-3 px-4">
+                      {(currentPage - 1) * 10 + index + 1}
+                    </td>
                     <td className="py-3 px-4">{supplier.supplier_name}</td>
                     <td className="py-3 px-4">{supplier.contact_email}</td>
                     <td className="py-3 px-4">
@@ -123,7 +118,7 @@ const SuppliersList = () => {
               ) : (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="4"
                     className="text-center py-6 text-gray-500 italic"
                   >
                     No suppliers found.
@@ -134,31 +129,32 @@ const SuppliersList = () => {
           </table>
         </div>
 
-    
-
-        {/* Pagination */}
-        <ReactPaginate
-          previousLabel={
-            <button className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-focus transition-colors">
-              Previous
-            </button>
-          }
-          nextLabel={
-            <button className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-focus transition-colors">
-              Next
-            </button>
-          }
-          breakLabel={<span className="px-2 text-gray-500">...</span>}
-          pageCount={totalPages}
-          marginPagesDisplayed={1}
-          pageRangeDisplayed={3}
-          onPageChange={handlePageChange}
-          containerClassName="flex justify-center items-center bottom-0 left-0 w-full bg-base-100 py-4 shadow-md space-x-2"
-          pageClassName="inline-block"
-          pageLinkClassName="px-3 py-2 bg-white text-primary border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-          activeClassName="bg-primary text-white"
-          activeLinkClassName="px-3 py-2 rounded-md"
-        />
+        {/* Add Supplier Modal */}
+        <AddSupplierModal addSupplier={addSupplier} />
+        <div className="absolute bottom-0 left-0 w-full">
+          <ReactPaginate
+            breakLabel={<span className="px-2 text-gray-800">...</span>}
+            pageCount={totalPages}
+            marginPagesDisplayed={1}
+            pageRangeDisplayed={3}
+            onPageChange={handlePageChange}
+            forcePage={currentPage - 1}
+            containerClassName="flex justify-center items-center py-4 space-x-2"
+            pageClassName="inline-block"
+            pageLinkClassName="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100"
+            activeClassName="bg-gray-100 text-white" // Highlight active page
+            previousLabel={
+              <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
+                Previous
+              </span>
+            }
+            nextLabel={
+              <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
+                Next
+              </span>
+            }
+          />
+        </div>
       </div>
     </div>
   );

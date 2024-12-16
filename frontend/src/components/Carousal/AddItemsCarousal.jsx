@@ -1,19 +1,18 @@
 import React, { useState } from "react";
 import AddItems from "./AddItems";
-import SelectCategory from "./SelectCategory";
-import SelectInventory from "./SelectInventory";
 import AddItemsProgressBar from "../Progress-bars/AddItemsProgressBar";
 import SelectSupplier from "./SelectSupplier";
+import ConfirmTransaction from "./ConfirmTransaction";
 const AddItemsCarousal = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
-    <SelectInventory key="selectInventory" />,
-    // <SelectCategory key="selectCategory" />,
     <SelectSupplier key="selectSupplier" />,
-    <AddItems
-      key="addItems"
-      onTransactionComplete={() => setCurrentSlide(0)} // Reset slide
+    <AddItems/>,
+    <ConfirmTransaction
+      key="addItems"        
+      onTransactionComplete={() => setCurrentSlide(0)}    
+      type={"purchase"}
     />,
   ];
 

@@ -3,7 +3,7 @@ import axios from "axios";
 import { createCategoryApi } from "../utils/routes"; // Ensure you have the correct API route
 import { toast } from 'react-toastify';
 
-const AddCategoryModal = ({ addCategory }) => {
+const AddCategoryModal = ({addCategory}) => {
   const [newCategory, setNewCategory] = useState("");
 
   const handleSubmit = async (e) => {
@@ -17,19 +17,15 @@ const AddCategoryModal = ({ addCategory }) => {
         { category_name: newCategory }, // The payload
         { withCredentials: true } // Include credentials (cookies)
       );
-
-      // Assuming the response contains the full category object
-      const categoryData = response.data.category;
-
-      // Call the parent function to update the list
-      addCategory(categoryData);  // Add the full category object
-
+      console.log(response.data.category)
+      addCategory(response.data.category)
       // Close the modal and clear the input
       document.getElementById("add_category_modal").close();
       toast.success("Category Added Successfully!");
       setNewCategory("");
     } catch (error) {
       console.error("Error adding category:", error);
+      toast.error(`Error: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -65,4 +61,4 @@ const AddCategoryModal = ({ addCategory }) => {
   );
 };
 
-export default AddCategoryModal;
+export default AddCategoryModal;  

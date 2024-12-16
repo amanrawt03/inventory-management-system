@@ -7,13 +7,12 @@ import {
   setSelectedSupplier,
   setSelectedCustomer,
   setCostPrice,
-  setTotalAvailable
+  setTotalAvailable,
 } from "../slice/selectionSlice";
 import { fetchCostPriceApi } from "../utils/routes";
-import axios from 'axios'
+import axios from "axios";
 const ItemsDropdown = ({ type, items }) => {
   const dispatch = useDispatch();
-
   const selectedValue = useSelector((state) =>
     type === "Category"
       ? state.selection.selectedCategory
@@ -21,11 +20,11 @@ const ItemsDropdown = ({ type, items }) => {
       ? state.selection.selectedLocation
       : type === "Product"
       ? state.selection.selectedItem
-      : type === "Supplier" // Add Supplier case
+      : type === "Supplier" 
       ? state.selection.selectedSupplier
       : type === "Customer"
       ? state.selection.selectedCustomer
-      :null 
+      : null
   );
 
   const handleSelection = async (e) => {
@@ -38,19 +37,25 @@ const ItemsDropdown = ({ type, items }) => {
         (type === "Supplier" && item.supplier_name === value) ||
         (type === "Customer" && item.customer_name === value)
     );
-  
+
     if (type === "Category") dispatch(setSelectedCategory(selectedItem));
     if (type === "Location") dispatch(setSelectedLocation(selectedItem));
     if (type === "Product") {
       dispatch(setSelectedItem(selectedItem));
       try {
-        const response = await axios.post(fetchCostPriceApi, { product_id: selectedItem.product_id }, { withCredentials: true });
-        const { costPrice, totalAvailable } = response.data; 
-        if (response.status === 200) {
-          dispatch(setCostPrice(costPrice)); 
-          dispatch(setTotalAvailable(totalAvailable)); 
-        } else {
-          console.error(`Error: ${response.error}`);
+        if (selectedItem) {
+          const response = await axios.post(
+            fetchCostPriceApi,
+            { product_id: selectedItem.product_id },
+            { withCredentials: true }
+          );
+          const { costPrice, totalAvailable } = response.data;
+          if (response.status === 200) {
+            dispatch(setCostPrice(costPrice));
+            dispatch(setTotalAvailable(totalAvailable));
+          } else {
+            console.error(`Error: ${response.error}`);
+          }
         }
       } catch (error) {
         console.error("Error:", error);
@@ -59,7 +64,6 @@ const ItemsDropdown = ({ type, items }) => {
     if (type === "Supplier") dispatch(setSelectedSupplier(selectedItem));
     if (type === "Customer") dispatch(setSelectedCustomer(selectedItem));
   };
-  
 
   return (
     <div className="dropdown">

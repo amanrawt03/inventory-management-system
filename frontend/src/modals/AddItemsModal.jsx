@@ -1,96 +1,90 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import ItemsDropdown from "../components/ItemsDropdown";
+import { addNewProductApi, fetchCategoriesList } from "../utils/routes";
 import axios from "axios";
 import { useSelector } from "react-redux";
-import { toast } from "react-toastify";
-const AddItemsModal = ({ addItem }) => {
-  // Fetch location and category from Redux
-  const { selectedCategory, selectedLocation , selectedSupplier} = useSelector(
-    (state) => state.selection
-  );
-
-
+import { useDispatch } from "react-redux";
+import { clearCategory } from "../slice/selectionSlice";
+const AddItemsModal = ({ setShowModal }) => {
+  const dispatch = useDispatch()
+  const selectedCategory = useSelector(state=>state.selection.selectedCategory)
   const [productName, setProductName] = useState("");
-  const [quantity, setQuantity] = useState(0);
+  const [categories, setCategories] = useState([]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(fetchCategoriesList);
+        setCategories(response.data.categories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        toast.error(`Error: ${error.response?.data?.message || error.message}`);
+      }
+    };
 
-    // Validate fields
-    if (productName.trim() === "" || quantity <= 0) {
-      alert("Product name is required, and quantity must be greater than zero.");
+    fetchCategories();
+  }, []);
+
+  const handleSave = async () => {
+    if (!selectedCategory) {
+      toast.error("Please select a category.");
+      return;
+    }
+
+    if (!productName.trim()) {
+      toast.error("Please enter a valid product name.");
       return;
     }
 
     try {
-      // Payload structure
-      const payload = {
-        location_name:selectedLocation.location_name,
-        category_name:selectedCategory.category_name,
-        product_name: productName,
-        quantity: Number(quantity),
-        supplier_name:selectedSupplier.supplier_name
-      };
-
-      // Send a POST request to create a new item
-      const response = await axios.post(
-        `http://localhost:3000/api/inventory/createItem`, // API route
-        payload, // Request payload
-        { withCredentials: true } // Include credentials (cookies)
-      );
-
-      // Assuming the response contains the full item object
-      const itemData = response.data.item;
-
-      // Call the parent function to update the list
-      addItem(itemData);
-
-      // Close the modal and clear the fields
-      document.getElementById("add_item_modal").close();
-      toast.success("Item Added Successfully")
-      setProductName("");
-      setQuantity(0);
+      await axios.post(addNewProductApi, {
+        category_id: selectedCategory.category_id,
+        product_name: productName.trim(),
+      });
+      toast.success(`Product "${productName}" added successfully!`);
     } catch (error) {
-      console.error("Error adding item:", error);
-      toast.error("Failed to add the item. Please try again.")
+      console.error("Error adding product:", error);
+      toast.error(`Failed to add product. ${error.message}`);
     }
+    dispatch(clearCategory())
   };
 
   return (
-    <dialog id="add_item_modal" className="modal">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Add New Item</h3>
-        <form onSubmit={handleSubmit} className="mt-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg w-96 p-6 relative">
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+          onClick={() => setShowModal(false)}
+        >
+          &times;
+        </button>
+        <h2 className="text-xl font-bold text-center mb-4">Add New Product</h2>
+        <div className="my-4 p-4 border border-gray-300 rounded-md">
+          <ItemsDropdown
+            type="Category"
+            items={categories}
+          />
+
+          <h3 className="text-lg font-semibold mt-4">Product Name:</h3>
           <input
             type="text"
-            placeholder="Product Name"
-            className="input input-bordered w-full mb-4"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            required
+            className="input input-bordered w-full my-2"
+            placeholder="Enter product name"
           />
-          <input
-            type="number"
-            placeholder="Quantity"
-            className="input input-bordered w-full mb-4"
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            required
-          />
-          <div className="modal-action">
-            <button type="submit" className="btn btn-primary">
-              Add
-            </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => document.getElementById("add_item_modal").close()}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+
+          <button
+            onClick={handleSave}
+            className="btn btn-primary w-full mt-4"
+            disabled={!selectedCategory || !productName.trim()}
+          >
+            Save Product
+          </button>
+        </div>
       </div>
-    </dialog>
+    </div>
   );
 };
 
