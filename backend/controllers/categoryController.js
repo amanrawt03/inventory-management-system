@@ -1,67 +1,57 @@
 import pool from "../config/pgConfig.js";
 import {
-  GET_ALL_CATEGORIES,
   CHECK_CATEGORY_EXISTS,
   INSERT_NEW_CATEGORY,
 } from "../queries/categoryQueries.js";
 
 const getAllCategories = async (req, res) => {
-  const { page = 1, limit = 9, searchTerm = '', sort = '' } = req.query;
-
-  const offset = (page - 1) * limit;
-
   try {
-    // Build the WHERE clause for search
-    const searchFilter = searchTerm
-      ? `WHERE LOWER(category_name) LIKE $3`
-      : '';
+    const { search = '', page = 1, limit = 10, sortOrder = 'ASC' } = req.query;
 
-    // Determine the ORDER BY clause for sorting
-    const sortOrder = sort === 'asc' ? 'ASC' : 'DESC';
-
-    // Query to fetch filtered and sorted categories
-    const query = `
-      SELECT *
-      FROM product_categories
-      ${searchFilter}
+    // Construct the base query
+    const baseQuery = `
+      SELECT * FROM product_categories 
+      WHERE LOWER(category_name) LIKE LOWER($1)
       ORDER BY category_name ${sortOrder}
-      LIMIT $1 OFFSET $2
     `;
 
-    // Prepare query parameters
-    const queryParams = searchTerm
-      ? [limit, offset, `%${searchTerm.toLowerCase()}%`]
-      : [limit, offset];
-
-    // Execute the query
-    const result = await pool.query(query, queryParams);
-
-    // Query to get the total count (with filter)
+    // Count query for pagination
     const countQuery = `
-      SELECT COUNT(*) 
-      FROM product_categories 
-      ${searchFilter}
+      SELECT COUNT(*) FROM product_categories 
+      WHERE LOWER(category_name) LIKE LOWER($1)
     `;
-    const countParams = searchTerm ? [`%${searchTerm.toLowerCase()}%`] : [];
-    const totalItemsResult = await pool.query(countQuery, countParams);
-    const totalItems = parseInt(totalItemsResult.rows[0].count, 10);
-    const totalPages = Math.ceil(totalItems / limit);
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'No categories found' });
-    }
+    // Search parameter with wildcards
+    const searchParam = `%${search}%`;
+
+    // Get total count
+    const countResult = await pool.query(countQuery, [searchParam]);
+    const totalCategories = parseInt(countResult.rows[0].count);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(totalCategories / limit);
+    const offset = (page - 1) * limit;
+
+    // Get paginated results
+    const result = await pool.query(
+      `${baseQuery} LIMIT $2 OFFSET $3`, 
+      [searchParam, limit, offset]
+    );
 
     return res.status(200).json({
       categories: result.rows,
-      totalPages,
-      currentPage: parseInt(page, 10),
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalCategories: totalCategories,
+        itemsPerPage: limit,
+      }
     });
   } catch (error) {
     console.error(error.message);
     return res.status(500).json({ error: error.message });
   }
 };
-  
 
 const createProductCategory = async (req, res) => {
   try {
@@ -113,7 +103,7 @@ const getCatWithoutPagination = async (req, res) => {
     const result = await pool.query(`SELECT * FROM product_categories`);
     if (result.rowCount === 0)
       return res.status(400).json({ message: "No categories found" });
-    return res.status(200).json({ categories: result.rows });
+    return res.status(200).json({ categories: result.rows  });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

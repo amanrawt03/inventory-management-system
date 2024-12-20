@@ -4,6 +4,7 @@ import DashboardCarItem from "./DashboardCarItem";
 const DashboardCarousal = () => {
   return (
     <div className="carousel rounded-box w-cwid-35 h-96">
+      
       <div className="carousel-item w-full">
         <img
           src={item1}

@@ -1,60 +1,48 @@
-import React, { useEffect, useState } from "react";
-import ReactPaginate from "react-paginate";
-import { useSelector } from "react-redux";
-import AddSupplierModal from "../modals/AddSupplierModal";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { fetchSuppliersApi } from "../utils/routes";
+import { debounce } from "lodash";
 import SettingsDropdown from "../components/SettingsDropdown";
+import AddSupplierModal from "../modals/AddSupplierModal";
+import { fetchSuppliersApi } from "../utils/routes";
 
 const SuppliersList = () => {
   const [suppliersList, setSuppliersList] = useState([]);
-  const [filteredSuppliers, setFilteredSuppliers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isSorted, setIsSorted] = useState(false);
-  const reduxSuppliers = useSelector((state) => state.data.suppliers);
+  const [sortOrder, setSortOrder] = useState("ASC");
+  const [searchTerm, setSearchTerm] = useState("");
+  const limit = 10;
 
-  // Fetch suppliers from API
-  const fetchSuppliers = async (page) => {
-    try {
-      const { data } = await axios.get(fetchSuppliersApi, { params: { page } });
-      setSuppliersList(data.suppliers);
-      setFilteredSuppliers(data.suppliers);
-      setTotalPages(data.totalPages);
-    } catch (error) {
-      console.error("Error fetching suppliers:", error);
-    }
-  };
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (search, page, sortOrder) => {
+      try {
+        const { data } = await axios.get(fetchSuppliersApi, {
+          params: {
+            search,
+            page,
+            limit,
+            sortOrder,
+          },
+        });
+        setSuppliersList(data.suppliers);
+        setTotalPages(data.pagination.totalPages);
+      } catch (error) {
+        console.error("Error searching suppliers:", error);
+      }
+    }, 300),
+    []
+  );
 
+  // Search effect
   useEffect(() => {
-    fetchSuppliers(currentPage);
-    setFilteredSuppliers(reduxSuppliers);
-  }, [reduxSuppliers, currentPage]);
+    debouncedSearch(searchTerm, currentPage, sortOrder);
 
-  // Filter and sort suppliers
-  useEffect(() => {
-    let filtered = suppliersList.filter((supplier) =>
-      supplier.supplier_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    if (isSorted) {
-      filtered = [...filtered].sort((a, b) =>
-        a.supplier_name.localeCompare(b.supplier_name)
-      );
-    }
-    setFilteredSuppliers(filtered);
-  }, [searchTerm, suppliersList, isSorted]);
-
-  // Add a new supplier
-  const addSupplier = (newSupplier) => {
-    setSuppliersList((prev) => [...prev, newSupplier]);
-    setSearchTerm(""); // Reset search
-  };
-
-  // Pagination handler
-  const handlePageChange = ({ selected }) => {
-    setCurrentPage(selected + 1);
-  };
+    // Cleanup function to cancel any pending debounced calls
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [searchTerm, currentPage, sortOrder, debouncedSearch]);
 
   // Format date
   const formatDate = (dateString) => {
@@ -62,26 +50,43 @@ const SuppliersList = () => {
     return date.toLocaleDateString("en-GB");
   };
 
-  return (
-    <div className="bg-base-200 min-h-screen flex relative">
-      <div className="w-full p-6 ml-10">
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">
-          Suppliers List
-        </h1>
+  // Add a new supplier
+  const addSupplier = (newSupplier) => {
+    setSuppliersList((prev) => [...prev, newSupplier]);
+  };
 
-        {/* Search and Sort Options */}
-        <div className="mb-6 flex items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search by supplier name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input input-bordered w-full max-w-md"
-          />
+  // Pagination handlers
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  return (
+    <div className="bg-base-200 min-h-screen flex flex-col">
+      <div className="p-6 ml-10 flex-grow">
+        <h1 className="text-4xl font-bold text-gray-800">Suppliers List</h1>
+
+        {/* Search Input */}
+        <div className="flex justify-between items-center mb-5 mt-4">
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search suppliers..."
+              className="input input-bordered w-96 max-w-xs"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Reset to first page on new search
+              }}
+            />
+          </div>
           <SettingsDropdown
-            listType={"supplier"}
-            isSorted={isSorted}
-            setIsSorted={setIsSorted}
+            sortOrder={sortOrder}
+            setSortOrder={setSortOrder}
+            listType="supplier"
           />
         </div>
 
@@ -97,16 +102,16 @@ const SuppliersList = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredSuppliers.length > 0 ? (
-                filteredSuppliers.map((supplier, index) => (
+              {suppliersList.length > 0 ? (
+                suppliersList.map((supplier, index) => (
                   <tr
-                    key={index}
+                    key={supplier.supplier_id}
                     className={`${
                       index % 2 === 0 ? "bg-gray-100" : "bg-white"
                     } hover:bg-gray-200`}
                   >
                     <td className="py-3 px-4">
-                      {(currentPage - 1) * 10 + index + 1}
+                      {(currentPage - 1) * limit + index + 1}
                     </td>
                     <td className="py-3 px-4">{supplier.supplier_name}</td>
                     <td className="py-3 px-4">{supplier.contact_email}</td>
@@ -131,29 +136,28 @@ const SuppliersList = () => {
 
         {/* Add Supplier Modal */}
         <AddSupplierModal addSupplier={addSupplier} />
-        <div className="absolute bottom-0 left-0 w-full">
-          <ReactPaginate
-            breakLabel={<span className="px-2 text-gray-800">...</span>}
-            pageCount={totalPages}
-            marginPagesDisplayed={1}
-            pageRangeDisplayed={3}
-            onPageChange={handlePageChange}
-            forcePage={currentPage - 1}
-            containerClassName="flex justify-center items-center py-4 space-x-2"
-            pageClassName="inline-block"
-            pageLinkClassName="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100"
-            activeClassName="bg-gray-100 text-white" // Highlight active page
-            previousLabel={
-              <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
-                Previous
-              </span>
-            }
-            nextLabel={
-              <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
-                Next
-              </span>
-            }
-          />
+      </div>
+
+      {/* Pagination */}
+      <div className="w-full pb-6">
+        <div className="flex justify-center items-center space-x-4">
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className="btn btn-primary"
+          >
+            Previous
+          </button>
+          <span className="text-lg">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className="btn btn-primary"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>

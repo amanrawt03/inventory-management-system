@@ -1,21 +1,31 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
-
+import { v4 as uuidv4 } from 'uuid'; // Added for unique invoice ID generation
 // Style improvements for a more professional invoice look
 const styles = StyleSheet.create({
   page: {
     padding: "30px",
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#ffffff",
   },
   section: {
+    marginBottom: 20,
+  },
+  invoiceHeader: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   title: {
     fontSize: 30,
     fontWeight: "bold",
     color: "#2c3e50",
-    marginBottom: 10,
+  },
+  invoiceId: {
+    fontSize: 14,
+    color: "#7f8c8d",
   },
   subTitle: {
     fontSize: 18,
@@ -61,13 +71,15 @@ const styles = StyleSheet.create({
   total: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#e74c3c",
+    color: "#27ae60", // Changed to a more professional green color
   },
   footer: {
     marginTop: 30,
     fontSize: 10,
-    textAlign: "center",
     color: "#7f8c8d",
+    position: "absolute",
+    bottom: 10,
+    left: "40vw"
   },
 });
 
@@ -75,7 +87,10 @@ const InvoiceDocument = ({ transaction, type }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [totalPurchaseCost, setTotalPurchaseCost] = useState(0); // For purchase total
+  const [totalPurchaseCost, setTotalPurchaseCost] = useState(0);
+  
+  // Generate a unique invoice ID
+  const invoiceId = `INV-${uuidv4().slice(0, 8).toUpperCase()}`;
 
   const {
     customer_name,
@@ -128,8 +143,12 @@ const InvoiceDocument = ({ transaction, type }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.section}>
+        <View style={styles.invoiceHeader}>
           <Text style={styles.title}>Invoice</Text>
+          <Text style={styles.invoiceId}>Invoice ID: {invoiceId}</Text>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.subTitle}>
             {type === "sell" ? "Customer Name" : "Supplier Name"}:{" "}
             {type === "sell" ? customer_name : supplier_name}
@@ -144,7 +163,7 @@ const InvoiceDocument = ({ transaction, type }) => {
             <Text style={styles.cellBold}>Product Name</Text>
             <Text style={styles.cellBold}>Quantity</Text>
             <Text style={styles.cellBold}>
-              {type === "sell" ? "Selling Price" : "Purchase Price"}
+              {type === "sell" ? "Selling Price" : "Purchase Price"} (Rs.)
             </Text>
             <Text style={styles.cellBold}>Category</Text>
             {type === "purchase" && <Text style={styles.cellBold}>Location</Text>}
@@ -159,7 +178,7 @@ const InvoiceDocument = ({ transaction, type }) => {
                 <Text style={styles.cell}>{item.product_name}</Text>
                 <Text style={styles.cell}>{item.quantity}</Text>
                 <Text style={styles.cell}>
-                  ${type === "sell" ? item.selling_price : item.cost_price}
+                  {type === "sell" ? item.selling_price : item.cost_price}
                 </Text>
                 <Text style={styles.cell}>{item.category_name}</Text>
                 {type === "purchase" && <Text style={styles.cell}>{item.location_name}</Text>}
@@ -172,13 +191,14 @@ const InvoiceDocument = ({ transaction, type }) => {
 
         <View style={styles.totalSection}>
           <Text style={styles.total}>
-            Total Amount: $
+            Total Amount (Rs):  
             {type === "sell" ? total_amount : totalPurchaseCost.toFixed(2)}
           </Text>
         </View>
 
         <View style={styles.footer}>
           <Text>Thank you for your business!</Text>
+          <Text>Generated on: {new Date().toLocaleString()}</Text>
         </View>
       </Page>
     </Document>

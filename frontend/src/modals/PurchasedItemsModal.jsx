@@ -2,22 +2,35 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { addToCart, updateCartItem } from "../slice/cartSlice"; // Adjust the path as per your slice structure.
+import { X, ShoppingCart, DollarSign, MapPin } from "lucide-react";
+import { addToCart, updateCartItem } from "../slice/cartSlice";
 import ItemsDropdown from "../components/ItemsDropdown";
 import { fetchLocationsList } from "../utils/routes";
 import { selectCartItemsByType } from "../slice/cartSlice";
 import { clearItem, clearLocation } from "../slice/selectionSlice";
+
 const PurchasedItemsModal = ({ setShowOrderModal, item, type }) => {
   const [quantity, setQuantity] = useState(0);
   const [price, setPrice] = useState(0);
   const [locations, setLocations] = useState([]);
   const dispatch = useDispatch();
-  const selectedSupplier = useSelector(state=>state.selection.selectedSupplier)
+  
+  const selectedSupplier = useSelector(state => state.selection.selectedSupplier);
   const selectedLocation = useSelector(
     (state) => state.selection.selectedLocation
   );
+  
   const totalAvailable = type === "Update" ? item.total_available : 0;
   const cartItems = useSelector(selectCartItemsByType("purchase"));
+
+  // Prevent scrolling when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -95,52 +108,95 @@ const PurchasedItemsModal = ({ setShowOrderModal, item, type }) => {
       dispatch(updateCartItem({ updatedOrder: newItem, type: "purchase" }));
       toast.success(`${item.product_name} updated successfully!`);
     }
+    
     dispatch(clearItem());
     setShowOrderModal(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-lg w-96 p-6 relative">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      onClick={() => setShowOrderModal(false)}
+    >
+      <div 
+        className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
         <button
-          className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+          className="absolute top-4 right-4 text-gray-900 hover:text-red-500 transition-colors"
           onClick={() => setShowOrderModal(false)}
         >
-          &times;
+          <X className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-bold text-center mb-4">
-          {type} {item.product_name} in Inventory
-        </h2>
-        <div className="my-4 p-4 border border-gray-300 rounded-md">
-          <h3 className="text-lg font-semibold">Enter Cost Price:</h3>
-          <input
-            type="number"
-            value={price}
-            onChange={handlePriceChange}
-            className="input input-bordered w-full my-2"
-            placeholder="Enter cost price"
-          />
 
-          <h3 className="text-lg font-semibold">Enter Quantity:</h3>
-          <input
-            type="number"
-            value={quantity}
-            onChange={handleQuantityChange}
-            className="input input-bordered w-full my-2"
-            placeholder="Enter quantity"
-          />
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">
+            <ShoppingCart className="w-6 h-6 text-gray-900" />
+            {type} {item.product_name}
+          </h2>
+          <p className="text-sm text-gray-900 mt-1">Manage Inventory Item</p>
+        </div>
+
+        {/* Modal Content */}
+        <div className="space-y-4">
+          {/* Cost Price Input */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-green-900" />
+              Cost Price
+            </label>
+            <input
+              type="number"
+              value={price}
+              onChange={handlePriceChange}
+              className="w-full px-3 py-2 border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all"
+              placeholder="Enter cost price"
+            />
+          </div>
+
+          {/* Quantity Input */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4 text-blue-900" />
+              Quantity
+              {type === "Update" && (
+                <span className="ml-2 text-xs text-gray-900">
+                  (Available: {totalAvailable})
+                </span>
+              )}
+            </label>
+            <input
+              type="number"
+              value={quantity}
+              onChange={handleQuantityChange}
+              className="w-full px-3 py-2 border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all"
+              placeholder="Enter quantity"
+            />
+          </div>
+
+          {/* Location Dropdown */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-red-900" />
+              Location
+            </label>
             <ItemsDropdown type="Location" items={locations} />
+          </div>
 
+          {/* Save Button */}
           <button
             onClick={handleSave}
-            className="btn btn-primary w-full mt-4"
+            className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={
               quantity <= 0 ||
               price <= 0 ||
               (type === "Update" && quantity > totalAvailable)
             }
           >
-            {type}
+            <ShoppingCart className="w-5 h-5" />
+            {type} Item
           </button>
         </div>
       </div>

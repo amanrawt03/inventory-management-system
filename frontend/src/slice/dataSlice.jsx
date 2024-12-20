@@ -3,9 +3,9 @@ import axios from "axios";
 
 // APIs for fetching details
 import {
-  fetchCategoriesApi,
+  fetchCategoriesList,
   fetchItemsApi,
-  fetchSuppliersApi,
+  fetchSuppliersList,
   fetchLocationsApi,
 } from "../utils/routes";
 
@@ -13,7 +13,7 @@ import {
 export const fetchCategories = createAsyncThunk(
   "data/fetchCategories",
   async () => {
-    const response = await axios.get(fetchCategoriesApi);
+    const response = await axios.get(fetchCategoriesList);
     return response.data.categories;
   }
 );
@@ -26,7 +26,7 @@ export const fetchItems = createAsyncThunk("data/fetchItems", async () => {
 export const fetchSuppliers = createAsyncThunk(
   "data/fetchSuppliers",
   async () => {
-    const response = await axios.get(fetchSuppliersApi);
+    const response = await axios.get(fetchSuppliersList);
     return response.data.suppliers;
   }
 );

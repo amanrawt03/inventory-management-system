@@ -4,9 +4,11 @@ import axios from "axios";
 import { MdEmail } from "react-icons/md";
 import { FaKey } from "react-icons/fa6";
 import inventoryImage from "../assets/inventory_bg.avif";
-import { login } from "../utils/routes";
-
+import { loginApi } from "../utils/routes";
+import { useDispatch } from "react-redux";
+import { setCurrentUser } from "../slice/selectionSlice";
 const LoginPage = () => {
+  const dispatch = useDispatch()
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -25,10 +27,11 @@ const LoginPage = () => {
     setError("");
 
     try {
-      const response = await axios.post(login, formData, {
+      const response = await axios.post(loginApi, formData, {
         withCredentials: true,
       });
-      console.log("Login Successful:", response.data); // Optional debugging
+      console.log("Login Successful:", response.data.user); 
+      dispatch(setCurrentUser(response.data.user))
       setLoading(false);
       navigate("/home");
     } catch (err) {
@@ -92,7 +95,15 @@ const LoginPage = () => {
                 />
               </label>
             </div>
-
+            <div className="flex justify-end mt-1">
+              <button
+                type="button"
+                className="link link-primary text-sm"
+                onClick={() => navigate("/forgot-password")}
+              >
+                Forgot Password?
+              </button>
+            </div>
             {/* Login Button */}
             <div className="form-control mt-6">
               <button

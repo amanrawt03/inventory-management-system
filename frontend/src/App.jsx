@@ -11,8 +11,11 @@ import ItemsList from "./lists/ItemsList";
 import LocationsList from "./lists/LocationsList";
 import { ToastContainer, toast } from "react-toastify";
 import PurchaseTransactionPage from "./pages/PurchaseTransactionPage";
-import Layout from './components/Layout'
+import Layout from "./components/Layout";
 import SellTransactionPage from "./pages/SellTransactionPage";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import ProfilePage from "./pages/ProfilePage";
 function App() {
   const showToast = () => {
     toast.success("This is a success message!", {
@@ -30,6 +33,14 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<LoginPage showToast={showToast} />} />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword showToast={showToast} />}
+        />
+        <Route
+          path="/reset-password/:token"
+          element={<ResetPassword showToast={showToast} />}
+        />
         <Route path="/" element={<Layout />}>
           <Route path="/home" element={<HomePage showToast={showToast} />} />
           <Route
@@ -63,6 +74,10 @@ function App() {
           <Route
             path="/list/Locations"
             element={<LocationsList showToast={showToast} />}
+          />
+          <Route
+            path="/profile"
+            element={<ProfilePage showToast={showToast} />}
           />
         </Route>
       </Routes>

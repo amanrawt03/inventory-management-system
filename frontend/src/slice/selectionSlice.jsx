@@ -14,6 +14,7 @@ const safeParse = (key) => {
 };
 
 const initialState = {
+  currentUser: safeParse("currentUser"),
   selectedCategory: safeParse("selectedCategory"),
   selectedLocation: safeParse("selectedLocation"),
   selectedItem: safeParse("selectedItem"),
@@ -28,6 +29,13 @@ const selectionSlice = createSlice({
   name: "selection",
   initialState,
   reducers: {
+    setCurrentUser: (state, action) => {
+      const user = action.payload;
+      state.currentUser = user;
+      if (user !== undefined) {
+        localStorage.setItem("currentUser", JSON.stringify(user));
+      }
+    },
     setSelectedCategory: (state, action) => {
       const category = action.payload;
       state.selectedCategory = category;
@@ -116,6 +124,7 @@ const selectionSlice = createSlice({
     },
     resetState: (state) => {
       Object.assign(state, {
+        currentUser:null,
         selectedCategory: null,
         selectedLocation: null,
         selectedItem: null,
@@ -124,6 +133,7 @@ const selectionSlice = createSlice({
         selectedCustomer: null,
         costPrice: 0,
       });
+      localStorage.removeItem("currentUser");
       localStorage.removeItem("selectedCategory");
       localStorage.removeItem("selectedLocation");
       localStorage.removeItem("selectedItem");
@@ -137,6 +147,7 @@ const selectionSlice = createSlice({
 });
 
 export const {
+  setCurrentUser,
   setSelectedCategory,
   setSelectedLocation,
   setSelectedItem,

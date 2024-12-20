@@ -1,5 +1,13 @@
 const api = "http://localhost:3000/api";
-const login = `${api}/auth/login`;
+
+// auth
+const loginApi = `${api}/auth/login`;
+const signupApi = `${api}/auth/signup`;
+const requestApi = `${api}/auth/request`;
+const resetApi = `${api}/auth/reset`;
+const updateProfileApi = `${api}/auth/update`;
+const fetchProfileApi = `${api}/auth/getProfile`;
+const UploadProfileImgApi = `${api}/auth/upload-profile-image`;
 
 // location
 const fetchLocationsApi = `${api}/inventory/paginate`;
@@ -11,6 +19,7 @@ const fetchCostPriceApi = `${api}/product/costPrice`;
 const fetchItemsApi = `${api}/product/paginate`;
 const fetchProductsList = `${api}/product`;
 const addNewProductApi = `${api}/product`;
+const fetchStockInfoApi = `${api}/product/getStockInfo`;
 
 // category
 const createCategoryApi = `${api}/category`;
@@ -24,7 +33,7 @@ const createSupplierApi = `${api}/supplier`;
 
 // customer
 const fetchCustomersList = `${api}/customer`;
-const createCustomerApi = `${api}/customer`
+const createCustomerApi = `${api}/customer`;
 
 // transaction
 const sellItemsApi = `${api}/transaction/sellItems`;
@@ -32,10 +41,19 @@ const purchaseItemsApi = `${api}/transaction/purchaseItems`;
 const sellingTransactionApi = `${api}/transaction/sellingTransaction`;
 const purchaseTransactionApi = `${api}/transaction/purchaseTransaction`;
 
+// graph
+const netProfitApi = `${api}/graph/netprofit`;
 export {
-  login,
+  loginApi,
+  signupApi,
+  requestApi,
+  resetApi,
+  fetchProfileApi,
+  updateProfileApi,
+  UploadProfileImgApi,
   fetchCategoriesApi,
   fetchItemsApi,
+  fetchStockInfoApi,
   fetchSuppliersApi,
   fetchLocationsApi,
   createCategoryApi,
@@ -44,7 +62,7 @@ export {
   purchaseItemsApi,
   createCustomerApi,
   sellItemsApi,
-  fetchCostPriceApi,  
+  fetchCostPriceApi,
   fetchCustomersList,
   fetchSuppliersList,
   fetchLocationsList,
@@ -52,5 +70,6 @@ export {
   fetchCategoriesList,
   addNewProductApi,
   sellingTransactionApi,
-  purchaseTransactionApi
+  purchaseTransactionApi,
+  netProfitApi,
 };

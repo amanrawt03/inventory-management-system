@@ -3,16 +3,19 @@ import { IoSettingsSharp } from "react-icons/io5";
 import { MdAddBox } from "react-icons/md";
 import { useState } from "react";
 import SortAlpha from "./SortAlpha";
-const SettingsDropdown = ({ isSorted, setIsSorted, listType }) => {
+
+const SettingsDropdown = ({ sortOrder, setSortOrder, listType }) => {
   const [isSliderOpen, setIsSliderOpen] = useState(false);
   const [type, setType] = useState(null);
+
   useEffect(() => {
     if (listType) {
       setType(listType);
-    }else{
+    } else {
       setType(null);
     }
-  });
+  }, [listType]);
+
   return (
     <div className="relative mr-3">
       <IoSettingsSharp
@@ -22,16 +25,18 @@ const SettingsDropdown = ({ isSorted, setIsSorted, listType }) => {
         onClick={() => setIsSliderOpen(!isSliderOpen)}
       />
       {isSliderOpen && (
-        <div className="absolute top-10 left-0  z-10 flex flex-col bg-gray-200 text-white rounded-lg shadow-lg p-1 ">
-          <SortAlpha isSorted={isSorted} setIsSorted={setIsSorted} />
-          {type && (<div className="relative group btn btn-circle bg-transparent border-none hover:bg-gray-600 transition duration-200">
-            <MdAddBox
-              className="size-7 ml-1 cursor-pointer"
-              onClick={() =>
-                document.getElementById(`add_${type}_modal`).showModal()
-              }
-            />
-          </div>)}
+        <div className="absolute top-10 left-0 z-10 flex flex-col bg-gray-200 text-white rounded-lg shadow-lg p-1 ">
+          <SortAlpha sortOrder={sortOrder} setSortOrder={setSortOrder} />
+          {type && (
+            <div className="relative group btn btn-circle bg-transparent border-none hover:bg-gray-600 transition duration-200">
+              <MdAddBox
+                className="size-7 ml-1 cursor-pointer"
+                onClick={() =>
+                  document.getElementById(`add_${type}_modal`).showModal()
+                }
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

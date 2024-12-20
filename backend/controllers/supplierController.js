@@ -1,62 +1,54 @@
 import pool from "../config/pgConfig.js";
 import { GET_ALL_SUPPLIERS, CHECK_SUPPLIER_EXISTS, INSERT_NEW_SUPPLIER } from "../queries/supplierQueries.js";
+
 const getAllSuppliers = async (req, res) => {
-  const { page = 1, limit = 8, searchTerm = '', sort = '' } = req.query;
-
-  const offset = (page - 1) * limit;
-
   try {
-    // Build the WHERE clause for search
-    const searchFilter = searchTerm
-      ? `WHERE LOWER(supplier_name) LIKE $3`
-      : '';
+    const { search = '', page = 1, limit = 10, sortOrder = 'ASC' } = req.query;
 
-    // Determine the ORDER BY clause for sorting
-    const sortOrder = sort === 'asc' ? 'ASC' : 'DESC';
-
-    // Query to fetch filtered and sorted suppliers
-    const query = `
-      SELECT *
-      FROM suppliers
-      ${searchFilter}
+    // Construct the base query
+    const baseQuery = `
+      SELECT * FROM suppliers 
+      WHERE LOWER(supplier_name) LIKE LOWER($1)
       ORDER BY supplier_name ${sortOrder}
-      LIMIT $1 OFFSET $2
     `;
 
-    // Prepare query parameters
-    const queryParams = searchTerm
-      ? [limit, offset, `%${searchTerm.toLowerCase()}%`]
-      : [limit, offset];
-
-    // Execute the query
-    const result = await pool.query(query, queryParams);
-
-    // Query to get the total count (with filter)
+    // Count query for pagination
     const countQuery = `
-      SELECT COUNT(*) 
-      FROM suppliers 
-      ${searchFilter}
+      SELECT COUNT(*) FROM suppliers
+      WHERE LOWER(supplier_name) LIKE LOWER($1)
     `;
-    const countParams = searchTerm ? [`%${searchTerm.toLowerCase()}%`] : [];
-    const totalItemsResult = await pool.query(countQuery, countParams);
-    const totalItems = parseInt(totalItemsResult.rows[0].count, 10);
-    const totalPages = Math.ceil(totalItems / limit);
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'No suppliers found' });
-    }
+    // Search parameter with wildcards
+    const searchParam = `%${search}%`;
+
+    // Get total count
+    const countResult = await pool.query(countQuery, [searchParam]);
+    const totalSuppliers = parseInt(countResult.rows[0].count);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(totalSuppliers / limit);
+    const offset = (page - 1) * limit;
+
+    // Get paginated results
+    const result = await pool.query(
+      `${baseQuery} LIMIT $2 OFFSET $3`,
+      [searchParam, limit, offset]
+    );
 
     return res.status(200).json({
       suppliers: result.rows,
-      totalPages,
-      currentPage: parseInt(page, 10),
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalSuppliers: totalSuppliers,
+        itemsPerPage: limit,
+      }
     });
   } catch (error) {
     console.error(error.message);
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 const getSuppWithoutPagination = async (req, res) => {
   try {

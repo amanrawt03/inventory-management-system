@@ -1,5 +1,3 @@
-import React from "react";
-import { useSelector, useDispatch } from "react-redux";
 import {
   setSelectedCategory,
   setSelectedLocation,
@@ -9,8 +7,11 @@ import {
   setCostPrice,
   setTotalAvailable,
 } from "../slice/selectionSlice";
-import { fetchCostPriceApi } from "../utils/routes";
+import { fetchCostPriceApi, fetchStockInfoApi } from "../utils/routes";
 import axios from "axios";
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+
 const ItemsDropdown = ({ type, items }) => {
   const dispatch = useDispatch();
   const selectedValue = useSelector((state) =>
@@ -20,12 +21,34 @@ const ItemsDropdown = ({ type, items }) => {
       ? state.selection.selectedLocation
       : type === "Product"
       ? state.selection.selectedItem
-      : type === "Supplier" 
+      : type === "Supplier"
       ? state.selection.selectedSupplier
       : type === "Customer"
       ? state.selection.selectedCustomer
       : null
   );
+  // useEffect(() => {
+  //   if (type === "Product" && selectedValue) {
+  //     const eventSource = new EventSource(
+  //       `${fetchStockInfoApi}?product_id=${selectedValue.product_id}`
+  //     );
+
+  //     eventSource.onmessage = (event) => {
+  //       const data = JSON.parse(event.data);
+  //       console.log(data.totalAvailable);
+  //       dispatch(setTotalAvailable(data.totalAvailable));
+  //     };
+
+  //     eventSource.onerror = (err) => {
+  //       console.error("EventSource error:", err);
+  //       eventSource.close();
+  //     };
+
+  //     return () => {
+  //       eventSource.close();
+  //     };
+  //   }
+  // });
 
   const handleSelection = async (e) => {
     const value = e.target.value;
@@ -44,17 +67,16 @@ const ItemsDropdown = ({ type, items }) => {
       dispatch(setSelectedItem(selectedItem));
       try {
         if (selectedItem) {
-          const response = await axios.post(
+          const cpResponse = await axios.post(
             fetchCostPriceApi,
             { product_id: selectedItem.product_id },
             { withCredentials: true }
           );
-          const { costPrice, totalAvailable } = response.data;
-          if (response.status === 200) {
+          const { costPrice } = cpResponse.data;
+          if (cpResponse.status === 200) {
             dispatch(setCostPrice(costPrice));
-            dispatch(setTotalAvailable(totalAvailable));
           } else {
-            console.error(`Error: ${response.error}`);
+            console.error(`Error: ${cpResponse.error}`);
           }
         }
       } catch (error) {

@@ -193,23 +193,16 @@ const purchaseItems = async (req, res) => {
 };
 
 const getSellingTransaction = async (req, res) => {
-  const { page = 1, limit = 8 } = req.query;  
-
   try {
-    // Convert page and limit to integers
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
+    const { 
+      search = '', 
+      page = 1, 
+      limit = 10, 
+      sortOrder = 'ASC' 
+    } = req.query;
 
-    // Validate page and limit
-    if (pageNumber < 1 || limitNumber < 1) {
-      return res.status(400).json({ error: "Page and limit must be positive integers." });
-    }
-
-    // Calculate offset for pagination
-    const offset = (pageNumber - 1) * limitNumber;
-
-    // Fetch transactions with pagination
-    const transacResult = await pool.query(`
+    // Construct the base query
+    const baseQuery = `
       SELECT 
         st.sell_transaction_id, 
         st.customer_id, 
@@ -220,34 +213,81 @@ const getSellingTransaction = async (req, res) => {
       FROM 
         sell_transactions st
       JOIN 
-        customers c 
-      ON 
-        st.customer_id = c.customer_id
+        customers c ON st.customer_id = c.customer_id
+      WHERE 
+        LOWER(c.customer_name) LIKE LOWER($1) OR 
+        st.sell_transaction_id::TEXT LIKE $1
       ORDER BY 
-        st.transaction_date DESC
-      LIMIT $1 OFFSET $2
-    `, [limitNumber, offset]);
+        st.transaction_date ${sortOrder}
+    `;
 
-    // Fetch the total number of records for pagination
-    const totalCountResult = await pool.query(`
-      SELECT COUNT(*) AS count FROM sell_transactions
-    `);
-    const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+    // Count query for pagination
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM 
+        sell_transactions st
+      JOIN 
+        customers c ON st.customer_id = c.customer_id
+      WHERE 
+        LOWER(c.customer_name) LIKE LOWER($1) OR 
+        st.sell_transaction_id::TEXT LIKE $1
+    `;
 
-    if (transacResult.rowCount === 0) {
-      return res.status(400).json({ message: "No transactions yet." });
+    // Search parameter with wildcards
+    const searchParam = `%${search}%`;
+
+    // Validate page and limit
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+
+    if (pageNumber < 1 || limitNumber < 1) {
+      return res.status(400).json({ 
+        error: "Page and limit must be positive integers." 
+      });
     }
 
-    // Return the transactions along with pagination info
+    // Get total count
+    const countResult = await pool.query(countQuery, [searchParam]);
+    const totalTransactions = parseInt(countResult.rows[0].count);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(totalTransactions / limitNumber);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    // Get paginated results
+    const result = await pool.query(
+      `${baseQuery} LIMIT $2 OFFSET $3`, 
+      [searchParam, limitNumber, offset]
+    );
+
+    // Handle no results
+    if (result.rowCount === 0) {
+      return res.status(200).json({
+        transactions: [],
+        pagination: {
+          currentPage: pageNumber,
+          totalPages: 0,
+          totalTransactions: 0,
+          itemsPerPage: limitNumber,
+        }
+      });
+    }
+
     return res.status(200).json({
-      transactions: transacResult.rows,
-      totalCount: totalCount,
-      totalPages: Math.ceil(totalCount / limitNumber),
-      currentPage: pageNumber,
+      transactions: result.rows,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages: totalPages,
+        totalTransactions: totalTransactions,
+        itemsPerPage: limitNumber,
+      }
     });
   } catch (error) {
     console.error("Error processing sell transactions:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ 
+      error: "Internal server error",
+      details: error.message 
+    });
   }
 };
 

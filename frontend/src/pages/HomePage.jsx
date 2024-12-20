@@ -27,7 +27,7 @@ const HomePage = () => {
         <p className="text-lg text-gray-600 text-center mb-8">
           Effortlessly manage your inventory with ease.
         </p>
-        
+
         <div className="flex justify-center">
           <DashboardCarousal />
         </div>

@@ -4,26 +4,47 @@ import { toast } from "react-toastify";
 import { addToCart, updateCartItem } from "../slice/cartSlice";
 import { clearItem } from "../slice/selectionSlice";
 import { selectCartItemsByType } from "../slice/cartSlice";
-
+import { fetchStockInfoApi } from "../utils/routes";
 const UpdateItemModal = ({ setShowOrderModal, item, type }) => {
   const [quantity, setQuantityState] = useState(0);
   const [sellPrice, setSellPrice] = useState(0);
-
+  const [realTimeStockAvailable, setTotalAvailable] = useState(0)
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItemsByType("sell"));
   const currentCustomer = useSelector(
     (state) => state.selection.selectedCustomer
   );
 
-  // Conditionally determine costPrice and totalAvailable
+  useEffect(() => {
+    if (item) {
+      const eventSource = new EventSource(
+        `${fetchStockInfoApi}?product_id=${item.product_id}`
+      );
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setTotalAvailable(data.totalAvailable)
+      };
+
+      eventSource.onerror = (err) => {
+        console.error("EventSource error:", err);
+        eventSource.close();
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    }
+  });
   const costPrice =
     type === "Update" && item
       ? item.cost_price
       : useSelector((state) => state.selection.costPrice);
+
   const totalAvailable =
     type === "Update" && item
       ? item.total_available
-      : useSelector((state) => state.selection.totalAvailable);
+      : realTimeStockAvailable
 
   useEffect(() => {
     if (type === "Update" && item) {
@@ -75,11 +96,14 @@ const UpdateItemModal = ({ setShowOrderModal, item, type }) => {
       } else {
         dispatch(addToCart({ newOrder: cartItem, type: "sell" }));
         toast.success(
-          `${item.product_name} ${type}d successfully with quantity ${quantity} and selling price ${sellPrice}`
+          `${item.product_name} saved successfully with quantity ${quantity} and selling price ${sellPrice}`
         );
       }
     } else {
       dispatch(updateCartItem({ updatedOrder: cartItem, type: "sell" }));
+      toast.success(
+        `${item.product_name} updated successfully with quantity ${quantity} and selling price ${sellPrice}`
+      );
     }
 
     dispatch(clearItem());
@@ -138,8 +162,7 @@ const UpdateItemModal = ({ setShowOrderModal, item, type }) => {
           disabled={
             quantity <= 0 ||
             sellPrice <= 0 ||
-            quantity > totalAvailable ||
-            sellPrice < costPrice
+            quantity > totalAvailable
           }
         >
           {type}

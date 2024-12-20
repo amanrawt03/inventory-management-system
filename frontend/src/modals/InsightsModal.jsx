@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import axios from "axios";
 
 const InsightsModal = ({ typeId, onClose, type }) => {
   const [insightItems, setInsightItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  console.log(typeof typeId)
+
   useEffect(() => {
     const fetchInsights = async () => {
       try {
@@ -34,71 +35,96 @@ const InsightsModal = ({ typeId, onClose, type }) => {
     }
   }, [typeId, type]);
 
+  // Prevent scrolling when modal is open
+  useEffect(() => {
+    if (typeId) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [typeId]);
+
+  if (!typeId) return null;
+
   return (
-    <>
-      {/* Background overlay */}
-      {typeId && (
-        <div className="fixed inset-0 bg-gray-100 opacity-50 z-40"></div>
-      )}
-
-      <dialog
-        id="insight_modal"
-        className="modal fixed inset-0 z-50 flex justify-center items-center"
-        open={!!typeId}
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-box p-6 bg-white rounded-lg shadow-lg max-w-3xl w-full">
-          <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-            {type === "sell" ? "Selling Insights" : "Purchase Insights"}
-          </h3>
+        {/* Close Button */}
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
 
-          {loading ? (
-            <div className="flex justify-center items-center space-x-2">
-              <div className="animate-spin rounded-full border-t-2 border-blue-500 w-8 h-8"></div>
-              <span className="text-gray-500">Loading...</span>
-            </div>
-          ) : error ? (
-            <p className="text-red-500 text-center mt-4">{error}</p>
-          ) : (
-            <div className="overflow-y-auto max-h-60 mt-4">
+        {/* Header */}
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
+          {type === "sell" ? "Selling Insights" : "Purchase Insights"}
+        </h2>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-10">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Insights List */}
+        {!loading && !error && (
+          <div className="space-y-4">
+            {insightItems.length === 0 ? (
+              <p className="text-center text-gray-500">No insights available</p>
+            ) : (
               <ul className="space-y-4">
                 {insightItems.map((item, index) => (
-                  <li
-                    key={index}
-                    className="p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200"
+                  <li 
+                    key={index} 
+                    className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="text-lg font-medium text-gray-700">{item.product_name}</div>
-                      <div className="text-sm text-gray-500">{item.category_name}</div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {item.product_name}
+                      </h3>
+                      <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
+                        {item.category_name}
+                      </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-3 text-sm text-gray-700">
                       <div>
-                        <strong>Quantity:</strong> {item.quantity}
+                        <span className="font-medium">Quantity:</span> {item.quantity}
                       </div>
                       <div>
-                        <strong>Cost Price:</strong> ${item.cost_price}
+                        <span className="font-medium">Cost Price:</span> ₹{item.cost_price}
                       </div>
                       <div>
-                        <strong>{type === "sell" ? "Selling Price" : "Location"}:   </strong>
-                        {type === "sell" ? item.selling_price : item.location_name}
+                        <span className="font-medium">
+                          {type === "sell" ? "Selling Price" : "Location"}:
+                        </span>{" "}
+                        {type === "sell" ? `₹${item.selling_price}` : item.location_name}
                       </div>
                     </div>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          <div className="modal-action mt-4 flex justify-end">
-            <button
-              onClick={onClose}
-              className="btn btn-primary text-white bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg"
-            >
-              Close
-            </button>
+            )}
           </div>
-        </div>
-      </dialog>
-    </>
+        )}
+      </div>
+    </div>
   );
 };
 

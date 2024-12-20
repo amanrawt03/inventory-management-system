@@ -1,29 +1,32 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { purchaseTransactionApi } from "../utils/routes";
-import InsightsModal from "../modals/InsightsModal"; // You can create a PurchaseInsightsModal similar to SellingInsightsModal
+import InsightsModal from "../modals/InsightsModal";
 import ReactPaginate from "react-paginate";
 import InvoiceDocument from "../invoice/InvoiceComponent";
-import { GrDocumentDownload } from "react-icons/gr";
-import { PDFDownloadLink } from "@react-pdf/renderer"; // Import PDFDownloadLink
+import { FaDownload } from "react-icons/fa";
+import { BsFillInfoSquareFill } from "react-icons/bs";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+
 const PurchaseTransactionPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedTransactionId, setSelectedTransactionId] = useState(null); // For storing the selected transaction's ID for insights
-  const [totalPages, setTotalPages] = useState(1); // Total number of pages
-  const [currentPage, setCurrentPage] = useState(1); // Current page
-  const itemsPerPage = 8; // Define how many items per page
+  const [selectedTransactionId, setSelectedTransactionId] = useState(null);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   // Fetch transaction data with pagination
   useEffect(() => {
     const fetchTransactions = async () => {
+      setLoading(true);
       try {
         const response = await axios.get(purchaseTransactionApi, {
-          params: { page: currentPage, limit: itemsPerPage }, // Include pagination parameters
+          params: { page: currentPage, limit: itemsPerPage },
         });
-        setTransactions(response.data.transactions); // Assuming the data structure
-        setTotalPages(response.data.totalPages); // Set total pages from response
+        setTransactions(response.data.transactions);
+        setTotalPages(response.data.totalPages);
       } catch (err) {
         setError("Failed to fetch transactions");
       } finally {
@@ -39,15 +42,15 @@ const PurchaseTransactionPage = () => {
     return <div className="text-center py-4 text-red-500">{error}</div>;
 
   const handleViewInsights = (transactionId) => {
-    setSelectedTransactionId(transactionId); // Open modal with the selected transaction ID
+    setSelectedTransactionId(transactionId);
   };
 
   const closeModal = () => {
-    setSelectedTransactionId(null); // Close modal
+    setSelectedTransactionId(null);
   };
 
   const handlePageChange = ({ selected }) => {
-    setCurrentPage(selected + 1); // Update current page
+    setCurrentPage(selected + 1); // ReactPaginate uses 0-based indexing
   };
 
   return (
@@ -77,35 +80,24 @@ const PurchaseTransactionPage = () => {
                   {(currentPage - 1) * itemsPerPage + index + 1}
                 </td>
                 <td className="px-6 py-3">{transaction.supplier_name}</td>
-                <td className="px-6 py-3">
-                  {transaction.total_items_purchased}
-                </td>
+                <td className="px-6 py-3">{transaction.total_items_purchased}</td>
                 <td className="px-6 py-3">${transaction.total_cost_price}</td>
                 <td className="px-6 py-3">
                   {new Date(transaction.transaction_date).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-6 py-3 flex space-x-2">
                   <button
-                    className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-900 transition"
-                    onClick={() =>
-                      handleViewInsights(transaction.purchase_transaction_id)
-                    } // Pass the transaction ID
+                    className="px-4 py-2 text-xl text-gray-800 rounded-lg hover:text-gray-500 transition"
+                    onClick={() => handleViewInsights(transaction.purchase_transaction_id)}
                   >
-                    View Insights
+                    <BsFillInfoSquareFill />
                   </button>
-
-                  {/* PDF Download Link */}
                   <PDFDownloadLink
-                    document={
-                      <InvoiceDocument
-                        transaction={transaction}
-                        type="purchase"
-                      />
-                    } // Pass transaction to the document
+                    document={<InvoiceDocument transaction={transaction} type="purchase" />}
                     fileName={`Invoice_${transaction.purchase_transaction_id}.pdf`}
                   >
-                    <button className="px-4 ml-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition">
-                      <GrDocumentDownload />
+                    <button className="px-2 py-2 text-gray-900 rounded-lg hover:bg-gray-600 transition">
+                      <FaDownload />
                     </button>
                   </PDFDownloadLink>
                 </td>
@@ -113,6 +105,25 @@ const PurchaseTransactionPage = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-6 flex justify-center">
+        <ReactPaginate
+          previousLabel={"Previous"}
+          nextLabel={"Next"}
+          breakLabel={"..."}
+          pageCount={totalPages}
+          marginPagesDisplayed={2}
+          pageRangeDisplayed={3}
+          onPageChange={handlePageChange}
+          containerClassName={"flex space-x-2"}
+          activeClassName={"text-white bg-blue-600 px-3 py-1 rounded-lg"}
+          pageClassName={"px-3 py-1 rounded-lg bg-gray-300"}
+          previousClassName={"px-3 py-1 rounded-lg bg-gray-500 text-white"}
+          nextClassName={"px-3 py-1 rounded-lg bg-gray-500 text-white"}
+          disabledClassName={"opacity-50 cursor-not-allowed"}
+        />
       </div>
 
       {/* Purchase Insights Modal */}
@@ -123,32 +134,6 @@ const PurchaseTransactionPage = () => {
           type="purchase"
         />
       )}
-
-      {/* Pagination */}
-      <div className="absolute bottom-0 left-0 w-full">
-        <ReactPaginate
-          breakLabel={<span className="px-2 text-gray-800">...</span>}
-          pageCount={totalPages}
-          marginPagesDisplayed={1}
-          pageRangeDisplayed={3}
-          onPageChange={handlePageChange}
-          forcePage={currentPage - 1}
-          containerClassName="flex justify-center items-center py-4 space-x-2"
-          pageClassName="inline-block"
-          pageLinkClassName="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100"
-          activeClassName="bg-gray-100 text-white" // Highlight active page
-          previousLabel={
-            <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
-              Previous
-            </span>
-          }
-          nextLabel={
-            <span className="px-3 py-2 bg-white text-primary border rounded-md hover:bg-gray-100">
-              Next
-            </span>
-          }
-        />
-      </div>
     </div>
   );
 };

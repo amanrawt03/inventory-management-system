@@ -14,8 +14,6 @@ const ConfirmTransaction = ({ onTransactionComplete, type }) => {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItemsByType(type));
   const {selectedCustomer, selectedSupplier} = useSelector(state=>state.selection)
-  console.log(selectedCustomer)
-  console.log(selectedSupplier)
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [currItem, setCurrItem] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,7 +24,7 @@ const ConfirmTransaction = ({ onTransactionComplete, type }) => {
   };
 
   const handleDeleteOrder = (product_id) => {
-    dispatch(removeCartItem({ orderId: product_id, type })); // Ensure type is passed
+    dispatch(removeCartItem({ orderId: product_id, type }));
   };
 
   const handlePlaceOrder = async () => {
@@ -67,67 +65,75 @@ const ConfirmTransaction = ({ onTransactionComplete, type }) => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="flex flex-col justify-center items-center h-52">
+      <div className="flex flex-col justify-center items-center h-52 text-gray-900">
         <small className="mt-4">No items selected for this transaction</small>
       </div>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">
-        Confirm {type === "sell" ? "Selling" : "Purchasing"} Order to {type === "sell"? `${selectedCustomer.customer_name}`:`${selectedSupplier.supplier_name}`}
+    <div className="p-6 bg-white rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">
+        Confirm {type === "sell" ? "Selling" : "Purchasing"} Order to {type === "sell" ? selectedCustomer.customer_name : selectedSupplier.supplier_name}
       </h1>
       {cartItems.length > 0 && (
         <>
-          <table className="table-auto w-full">
-            <thead>
-              <tr>
-                <th>Product Name</th>
-                <th>Quantity</th>
-                <th>Cost Price</th>
-                {type === "sell" && <th>Selling Price</th>}
-                <th>Total Cost</th>
-                {type === "sell" && <th>Total Selling</th>}
-                {type === "purchase" && <th>Location</th>}
-                <th>Options</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cartItems.map((item) => (
-                <tr key={item.product_id}>
-                  <td>{item.product_name}</td>
-                  <td>{item.quantity}</td>
-                  <td>{item.cost_price}</td>
-                  {type === "sell" && <td>{item.selling_price}</td>}
-                  <td>{item.total_cost}</td>
-                  {type === "sell" && <td>{item.total_selling}</td>}
-                  {type === "purchase" && <td>{item.location}</td>}
-                  <td>
-                    <div className="flex m-2 ml-8">
-                      <MdEditSquare
-                        className="mr-3 cursor-pointer"
-                        onClick={() => handleEditOrder(item)}
-                      />
-                      <MdDelete
-                        className="cursor-pointer"
-                        onClick={() => handleDeleteOrder(item.product_id)}
-                      />
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3 text-left">Product Name</th>
+                  <th className="p-3 text-left">Quantity</th>
+                  <th className="p-3 text-left">Cost Price</th>
+                  {type === "sell" && <th className="p-3 text-left">Selling Price</th>}
+                  <th className="p-3 text-left">Total Cost</th>
+                  {type === "sell" && <th className="p-3 text-left">Total Selling</th>}
+                  {type === "purchase" && <th className="p-3 text-left">Location</th>}
+                  <th className="p-3 text-left">Options</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <button
-            onClick={handlePlaceOrder}
-            className="btn btn-primary mt-4"
-            disabled={isSubmitting}
-          >
-            {isSubmitting
-              ? "Processing..."
-              : `Confirm ${type === "sell" ? "Selling" : "Purchasing"} Order`}
-          </button>
+              </thead>
+              <tbody>
+                {cartItems.map((item) => (
+                  <tr key={item.product_id} className="border-b hover:bg-gray-50 transition-colors">
+                    <td className="p-3">{item.product_name}</td>
+                    <td className="p-3">{item.quantity}</td>
+                    <td className="p-3">₹{item.cost_price}</td>
+                    {type === "sell" && <td className="p-3">₹{item.selling_price}</td>}
+                    <td className="p-3">₹{item.total_cost}</td>
+                    {type === "sell" && <td className="p-3">₹{item.total_selling}</td>}
+                    {type === "purchase" && <td className="p-3">{item.location}</td>}
+                    <td className="p-3">
+                      <div className="flex items-center space-x-3">
+                        <MdEditSquare
+                          className="text-blue-900 hover:text-blue-700 cursor-pointer text-lg"
+                          onClick={() => handleEditOrder(item)}
+                        />
+                        <MdDelete
+                          className="text-red-800 hover:text-red-700 cursor-pointer text-lg"
+                          onClick={() => handleDeleteOrder(item.product_id)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handlePlaceOrder}
+              className={`px-6 py-2 rounded-md text-white font-semibold transition-colors ${
+                isSubmitting 
+                  ? "bg-gray-500 cursor-not-allowed" 
+                  : "bg-gray-900 hover:bg-gray-700"
+              }`}
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? "Processing..."
+                : `Confirm ${type === "sell" ? "Selling" : "Purchasing"} Order`}
+            </button>
+          </div>
           {showOrderModal && (
             type === "sell" ? (
               <UpdateItemModal
