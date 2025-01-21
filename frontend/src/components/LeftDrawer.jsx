@@ -1,27 +1,47 @@
-import React, { useState } from "react";
-import { 
-  FaHome, 
-  FaShoppingCart, 
-  FaChevronDown, 
-  FaChevronUp 
-} from "react-icons/fa";
-import { useSelector } from "react-redux";
-import { MdSell } from "react-icons/md";
-import { TbReportAnalytics } from "react-icons/tb";
-import { RiLogoutBoxRFill } from "react-icons/ri";
-import { Link, useNavigate } from "react-router-dom";
-import profileImg from "../assets/profileImg.jpg";
-import { useDispatch } from "react-redux";
 import { resetState } from "../slice/selectionSlice";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import {
+  FaHome,
+  FaShoppingCart,
+  FaChevronDown,
+  FaChevronUp,
+} from "react-icons/fa";
+import { MdSell } from "react-icons/md";
+import { RiLogoutBoxRFill } from "react-icons/ri";
+import { TbReportAnalytics } from "react-icons/tb";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const Sidebar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const user = useSelector(state=>state.selection.currentUser)
-  const handleLogout = () => {
-    dispatch(resetState());
-    window.location.href = "/";
+  const user = useSelector((state) => state.selection.currentUser);
+  const profile_image = useSelector((state) => state.selection.profile_image);
+  let image;
+  if(!profile_image)image = user.profile_image;
+  else image = profile_image
+
+  useEffect(() => {
+      image = profile_image;
+  }, [profile_image]);
+  console.log(profile_image)        
+  // console.log(user.profile_image)
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        `http://localhost:3000/api/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+      dispatch(resetState());
+      window.location.href = "/";
+    } catch (error) {
+      toast.error(`Error: ${error?.error.message}`);
+    }
   };
 
   const toggleDropdown = (dropdown) => {
@@ -36,45 +56,50 @@ const Sidebar = () => {
     {
       icon: <FaHome className="text-lg text-gray-400" />,
       label: "Dashboard",
-      path: "/home"
+      path: "/home",
     },
     {
       icon: <MdSell className="text-lg text-gray-400" />,
       label: "Sales",
-      path: "/sellItems"
+      path: "/sellItems",
     },
     {
       icon: <FaShoppingCart className="text-lg text-gray-400" />,
       label: "Inventory",
-      path: "/addItems"
+      path: "/addItems",
     },
     {
       icon: <TbReportAnalytics className="text-lg text-gray-400" />,
       label: "Transactions",
       dropdown: [
-        { 
-          label: "Sales Log", 
-          path: "/sellTransactions" 
+        {
+          label: "Sales Log",
+          path: "/sellTransactions",
         },
-        { 
-          label: "Purchase Log", 
-          path: "/purchaseTransactions" 
-        }
-      ]
-    }
+        {
+          label: "Purchase Log",
+          path: "/purchaseTransactions",
+        },
+      ],
+    },
   ];
-
   return (
     <div className="bg-gray-900 text-gray-300 w-56 min-h-screen shadow-xl">
       {/* Profile Section */}
       <div className="flex flex-col items-center py-6 border-b border-gray-700">
         <div className="avatar mb-3">
           <div className="w-16 rounded-full ring ring-primary ring-offset-gray-900 ring-offset-2">
-            <img src={profileImg} alt="Profile" className="object-cover" />
+            <img
+              src={image}
+              alt="Profile"
+              className="w-24 h-24 rounded-full object-cover"
+            />
           </div>
         </div>
-        <h5 className="text-base font-medium text-white">Hi {user.name}</h5>
-        <Link to={'/profile'} className="text-sm mt-1 text-blue-700">View My Info </Link>
+        <h5 className="text-base font-medium text-white">Hi, {user.name}</h5>
+        <Link to={"/profile"} className="text-sm mt-1 text-blue-700">
+          View My Info{" "}
+        </Link>
       </div>
 
       {/* Navigation Links */}
@@ -83,7 +108,7 @@ const Sidebar = () => {
           <div key={index} className="mb-1 py-1.5">
             {item.dropdown ? (
               <div>
-                <div 
+                <div
                   onClick={() => toggleDropdown(item.label)}
                   className="flex items-center justify-between px-3 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
                 >
@@ -91,10 +116,11 @@ const Sidebar = () => {
                     {item.icon}
                     <span className="text-sm">{item.label}</span>
                   </div>
-                  {activeDropdown === item.label ? 
-                    <FaChevronUp className="text-xs text-gray-400" /> : 
+                  {activeDropdown === item.label ? (
+                    <FaChevronUp className="text-xs text-gray-400" />
+                  ) : (
                     <FaChevronDown className="text-xs text-gray-400" />
-                  }
+                  )}
                 </div>
 
                 {activeDropdown === item.label && (

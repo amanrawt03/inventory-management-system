@@ -9,11 +9,11 @@ import { selectCartItemsByType } from "../../slice/cartSlice";
 import { clearCustomer, clearSupplier } from "../../slice/selectionSlice";
 import { purchaseItemsApi, sellItemsApi } from "../../utils/routes";
 import axios from "axios";
-
+import { formatPrice } from "../../utils/formatPrices";
 const ConfirmTransaction = ({ onTransactionComplete, type }) => {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItemsByType(type));
-  const {selectedCustomer, selectedSupplier} = useSelector(state=>state.selection)
+  const { selectedCustomer, selectedSupplier } = useSelector(state => state.selection);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [currItem, setCurrItem] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,28 +32,20 @@ const ConfirmTransaction = ({ onTransactionComplete, type }) => {
       toast.error("No items in the cart to process.");
       return;
     }
-    setIsSubmitting(true); 
+    setIsSubmitting(true);
     try {
-      if (type === "sell") {
-        const response = await axios.post(sellItemsApi, { orders: cartItems });
-        if (response.status === 200) {
-          toast.success("Selling transaction successful!");
-          dispatch(clearCart({ type }));
+      const response = await axios.post(type === "sell" ? sellItemsApi : purchaseItemsApi, { orders: cartItems }, { withCredentials: true });
+      if (response.status === 200) {
+        toast.success(`${type === "sell" ? "Selling" : "Purchase"} transaction successful!`);
+        dispatch(clearCart({ type }));
+        if (type === "sell") {
           dispatch(clearCustomer());
-          onTransactionComplete();
         } else {
-          toast.error(response.data.message || "Failed to complete the transaction.");
-        }
-      } else {
-        const response = await axios.post(purchaseItemsApi, {orders: cartItems});
-        if(response.status === 200){
-          toast.success("Purchase transaction successful!");
-          dispatch(clearCart({ type }));
           dispatch(clearSupplier());
-          onTransactionComplete();
-        }else{
-          toast.error(response.data.message || "Failed to complete the transaction.");
         }
+        onTransactionComplete();
+      } else {
+        toast.error(response.data.message || "Failed to complete the transaction.");
       }
     } catch (error) {
       console.error("Error processing transaction:", error);
@@ -84,7 +76,7 @@ const ConfirmTransaction = ({ onTransactionComplete, type }) => {
                 <tr>
                   <th className="p-3 text-left">Product Name</th>
                   <th className="p-3 text-left">Quantity</th>
-                  <th className="p-3 text-left">Cost Price</th>
+                  <th className=" p-3 text-left">Cost Price</th>
                   {type === "sell" && <th className="p-3 text-left">Selling Price</th>}
                   <th className="p-3 text-left">Total Cost</th>
                   {type === "sell" && <th className="p-3 text-left">Total Selling</th>}
@@ -97,10 +89,10 @@ const ConfirmTransaction = ({ onTransactionComplete, type }) => {
                   <tr key={item.product_id} className="border-b hover:bg-gray-50 transition-colors">
                     <td className="p-3">{item.product_name}</td>
                     <td className="p-3">{item.quantity}</td>
-                    <td className="p-3">₹{item.cost_price}</td>
-                    {type === "sell" && <td className="p-3">₹{item.selling_price}</td>}
-                    <td className="p-3">₹{item.total_cost}</td>
-                    {type === "sell" && <td className="p-3">₹{item.total_selling}</td>}
+                    <td className="p-3">{formatPrice(item.cost_price)}</td>
+                    {type === "sell" && <td className="p-3">{formatPrice(item.selling_price)}</td>}
+                    <td className="p-3">{formatPrice(item.total_cost)}</td>
+                    {type === "sell" && <td className="p-3">{formatPrice(item.total_selling)}</td>}
                     {type === "purchase" && <td className="p-3">{item.location}</td>}
                     <td className="p-3">
                       <div className="flex items-center space-x-3">

@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from "react";
 import ItemsDropdown from "../ItemsDropdown";
 import AddSupplierModal from "../../modals/AddSupplierModal"; // Modal for adding a supplier
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { fetchSuppliersList } from "../../utils/routes";
 import axios from "axios";
 
 const SelectSupplier = () => {
   const [suppliers, setSuppliers] = useState([]);
+  const [supplierUpdate, setSupplierUpdate] = useState(false);
   const [loading, setLoading] = useState(true); // Loading state for API call
   const [error, setError] = useState(null); // Error state
 
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await axios.get(fetchSuppliersList);
+        const response = await axios.get(fetchSuppliersList, {withCredentials:true});
         setSuppliers(response.data.suppliers);
         setLoading(false);
       } catch (err) {
@@ -24,7 +25,7 @@ const SelectSupplier = () => {
     };
 
     fetchSuppliers();
-  }, []);
+  }, [supplierUpdate]);
 
   const [active, setActive] = useState(true);
 
@@ -70,7 +71,8 @@ const SelectSupplier = () => {
         </button>
 
         {/* Add Supplier Modal */}
-        <AddSupplierModal/>
+        <AddSupplierModal
+        onSupplierUpdate={()=>setSupplierUpdate(prev=>!prev)}/>
       </div>
     </div>
   );

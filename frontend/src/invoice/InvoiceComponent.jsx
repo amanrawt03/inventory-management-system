@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
 import { v4 as uuidv4 } from 'uuid'; // Added for unique invoice ID generation
+import { formatPrice } from "../utils/formatPrices";
 // Style improvements for a more professional invoice look
 const styles = StyleSheet.create({
   page: {
@@ -114,7 +115,7 @@ const InvoiceDocument = ({ transaction, type }) => {
         } else {
           throw new Error("Invalid type");
         }
-        const response = await axios.get(url);
+        const response = await axios.get(url, {withCredentials:true});
         const dataItems = response.data.items;
 
         setItems(dataItems);
@@ -178,7 +179,7 @@ const InvoiceDocument = ({ transaction, type }) => {
                 <Text style={styles.cell}>{item.product_name}</Text>
                 <Text style={styles.cell}>{item.quantity}</Text>
                 <Text style={styles.cell}>
-                  {type === "sell" ? item.selling_price : item.cost_price}
+                  {type === "sell" ? formatPrice(item.selling_price) : formatPrice(item.cost_price)}
                 </Text>
                 <Text style={styles.cell}>{item.category_name}</Text>
                 {type === "purchase" && <Text style={styles.cell}>{item.location_name}</Text>}
@@ -192,7 +193,7 @@ const InvoiceDocument = ({ transaction, type }) => {
         <View style={styles.totalSection}>
           <Text style={styles.total}>
             Total Amount (Rs):  
-            {type === "sell" ? total_amount : totalPurchaseCost.toFixed(2)}
+            {type === "sell" ? formatPrice(total_amount) : formatPrice(totalPurchaseCost)}
           </Text>
         </View>
 

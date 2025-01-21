@@ -3,10 +3,9 @@ import { toast } from "react-toastify";
 import ItemsDropdown from "../components/ItemsDropdown";
 import { addNewProductApi, fetchCategoriesList } from "../utils/routes";
 import axios from "axios";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
-import { clearCategory } from "../slice/selectionSlice";
-const AddItemsModal = ({ setShowModal }) => {
+import { useSelector,useDispatch } from "react-redux";
+import { clearCategory,setSelectedItem } from "../slice/selectionSlice";
+const AddItemsModal = ({ setShowModal,onItemAdded }) => {
   const dispatch = useDispatch()
   const selectedCategory = useSelector(state=>state.selection.selectedCategory)
   const [productName, setProductName] = useState("");
@@ -15,7 +14,7 @@ const AddItemsModal = ({ setShowModal }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(fetchCategoriesList);
+        const response = await axios.get(fetchCategoriesList, {withCredentials:true});
         setCategories(response.data.categories);
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -38,11 +37,15 @@ const AddItemsModal = ({ setShowModal }) => {
     }
 
     try {
-      await axios.post(addNewProductApi, {
+      const response = await axios.post(addNewProductApi, {
         category_id: selectedCategory.category_id,
         product_name: productName.trim(),
-      });
+      },{withCredentials:true});
+      if(onItemAdded)onItemAdded()
+      dispatch(setSelectedItem(response.data.item))
+      setShowModal(false)
       toast.success(`Product "${productName}" added successfully!`);
+      setProductName("")
     } catch (error) {
       console.error("Error adding product:", error);
       toast.error(`Failed to add product. ${error.message}`);

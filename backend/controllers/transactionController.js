@@ -1,11 +1,18 @@
 import pool from "../config/pgConfig.js";
+const formatPrice = (price) => {
+  if (price >= 10000000) {
+    return `₹${(price / 10000000).toFixed(2)} cr`;
+  } else if (price >= 100000) {
+    return `₹${(price / 100000).toFixed(2)} lac`;
+  } else {
+    return `₹${price.toLocaleString()}`;
+  }
+};
 import {
-  GET_SUPPLIER_ID,
-  GET_LOCATION_ID,
-  GET_CATEGORY_ID,
-  GET_ITEM_QUANTITY,
   GET_TOTAL_QUANTITY_OFITEM,
 } from "../queries/inventoryQueries.js";
+
+import { publishNotification } from "../utils/publishNotification.js";
 const sellItems = async (req, res) => {
   try {
     const { orders } = req.body;
@@ -18,7 +25,7 @@ const sellItems = async (req, res) => {
       await pool.query(
         `INSERT INTO sell_transactions (customer_id, total_items_sold, total_amount) 
            VALUES ($1, $2, $3) RETURNING sell_transaction_id`,
-        [orders[0].customer_id, 0, 0] // Initial placeholder values
+        [orders[0].customer_id, 0, 0] 
       )
     ).rows[0].sell_transaction_id;
 
@@ -31,6 +38,7 @@ const sellItems = async (req, res) => {
         [product_id]
       );
       const category_id = catResult.rows[0].category_id;
+
       // Get total available quantity for this product
       const totalResult = await pool.query(GET_TOTAL_QUANTITY_OFITEM, [
         product_id,
@@ -82,6 +90,43 @@ const sellItems = async (req, res) => {
         ]
       );
 
+      // Check for stock threshold
+      const updatedResult = await pool.query(GET_TOTAL_QUANTITY_OFITEM, [
+        product_id,
+      ]);
+      const updatedQuantity = updatedResult.rows[0]?.totalquantity || 0;
+
+      if (updatedQuantity < 15) {
+        const product_res = await pool.query(`SELECT product_name FROM products WHERE product_id = $1`,[product_id])
+        const product_name = product_res.rows[0].product_name
+        
+        const message = `Stock for Product ${product_name} is below the minimum threshold (${updatedQuantity} remaining).`;
+        const notifyResult = await pool.query(
+          `INSERT INTO notifications (type, message) VALUES ($1, $2) RETURNING notification_id`,
+          ["Stock Alert", message]
+        );
+        const notification_id = notifyResult.rows[0].notification_id
+        
+        // Associate notification with users
+        await pool.query(
+          `INSERT INTO users_notifications (user_id, notification_id) VALUES 
+           (1, $1), (2, $1)`,
+          [notification_id]
+        );
+
+        const stockAlertNotification = {
+          notification_id,
+          type: "Stock Alert",
+          is_read: false,
+          message,
+          timestamp: new Date().toISOString(),
+        };
+        await publishNotification(
+          "notifications_channel",
+          stockAlertNotification
+        );
+      }
+
       // Update totals for sell transaction
       totalItemsSold += quantity;
       totalAmount += selling_price * quantity;
@@ -95,12 +140,37 @@ const sellItems = async (req, res) => {
       [totalItemsSold, totalAmount, sellTransactionId]
     );
 
+    // Publish success notification
+    let finalAmount = formatPrice(totalAmount)
+    const successMessage = `${totalItemsSold} items for ${finalAmount} sold to ${orders[0].customer_name}`;
+    const notifyResult = await pool.query(
+      `INSERT INTO notifications (type, message) VALUES ($1, $2) RETURNING notification_id`,
+      ["Transaction Update", successMessage]
+    );
+    const notify_Id = notifyResult.rows[0].notification_id
+    
+    // Associate success notification with users
+    await pool.query(
+      `INSERT INTO users_notifications (user_id, notification_id) VALUES 
+       (1, $1), (2, $1)`,
+      [notify_Id]
+    );
+
+    const transactionNotification = {
+      notification_id: notify_Id,
+      type: "Transaction Update",
+      is_read: false,
+      message: successMessage,
+      timestamp: new Date().toISOString(),
+    };
+    await publishNotification("notifications_channel", transactionNotification);
     return res.status(200).json({ message: "Transaction Successful" });
   } catch (error) {
     console.error("Error selling items:", error);
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
 
 const purchaseItems = async (req, res) => {
   try {
@@ -185,6 +255,28 @@ const purchaseItems = async (req, res) => {
       [totalItemsPurchased, totalCostPrice, purchaseTransactionId]
     );
 
+    let finalAmount = formatPrice(totalCostPrice)
+    // update notification table
+    const successMessage = `${totalItemsPurchased} items for ${finalAmount} is purchased from ${orders[0].supplier_name}`;
+    const notifyResult = await pool.query(
+      `INSERT INTO notifications (type, message) VALUES ($1, $2) RETURNING notification_id`,
+      ["Transaction Update", successMessage]
+    );
+
+    const notify_Id = notifyResult.rows[0].notification_id
+    await pool.query(
+      `INSERT INTO users_notifications (user_id, notification_id) VALUES 
+       (1, $1), (2, $1)`,
+      [notify_Id]
+    );
+    const transactionNotification = {
+      notification_id:notify_Id,
+      is_read:false,
+      type: "Transaction Update",
+      message: successMessage,
+      timestamp: new Date().toISOString(),
+    };
+    await publishNotification("notifications_channel", transactionNotification);
     return res.status(200).json({ message: "Purchase transaction successful" });
   } catch (error) {
     console.error("Error processing purchase transaction:", error);
@@ -194,12 +286,7 @@ const purchaseItems = async (req, res) => {
 
 const getSellingTransaction = async (req, res) => {
   try {
-    const { 
-      search = '', 
-      page = 1, 
-      limit = 10, 
-      sortOrder = 'ASC' 
-    } = req.query;
+    const { search = "", page = 1, limit = 10, sortOrder = "ASC" } = req.query;
 
     // Construct the base query
     const baseQuery = `
@@ -241,8 +328,8 @@ const getSellingTransaction = async (req, res) => {
     const limitNumber = parseInt(limit, 10);
 
     if (pageNumber < 1 || limitNumber < 1) {
-      return res.status(400).json({ 
-        error: "Page and limit must be positive integers." 
+      return res.status(400).json({
+        error: "Page and limit must be positive integers.",
       });
     }
 
@@ -255,10 +342,11 @@ const getSellingTransaction = async (req, res) => {
     const offset = (pageNumber - 1) * limitNumber;
 
     // Get paginated results
-    const result = await pool.query(
-      `${baseQuery} LIMIT $2 OFFSET $3`, 
-      [searchParam, limitNumber, offset]
-    );
+    const result = await pool.query(`${baseQuery} LIMIT $2 OFFSET $3`, [
+      searchParam,
+      limitNumber,
+      offset,
+    ]);
 
     // Handle no results
     if (result.rowCount === 0) {
@@ -269,7 +357,7 @@ const getSellingTransaction = async (req, res) => {
           totalPages: 0,
           totalTransactions: 0,
           itemsPerPage: limitNumber,
-        }
+        },
       });
     }
 
@@ -280,19 +368,19 @@ const getSellingTransaction = async (req, res) => {
         totalPages: totalPages,
         totalTransactions: totalTransactions,
         itemsPerPage: limitNumber,
-      }
+      },
     });
   } catch (error) {
     console.error("Error processing sell transactions:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "Internal server error",
-      details: error.message 
+      details: error.message,
     });
   }
 };
 
 const getPurchaseTransaction = async (req, res) => {
-  const { page = 1, limit = 8 } = req.query; // Default to page 1 and limit 10 if not provided
+  const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
   const offset = (page - 1) * limit; // Calculate the offset for pagination
 
   try {
@@ -305,7 +393,8 @@ const getPurchaseTransaction = async (req, res) => {
     const totalPages = Math.ceil(totalCount / limit); // Calculate total pages
 
     // Fetch transactions with pagination
-    const transacResult = await pool.query(`
+    const transacResult = await pool.query(
+      `
       SELECT 
         pt.purchase_transaction_id, 
         pt.supplier_id, 
@@ -322,7 +411,9 @@ const getPurchaseTransaction = async (req, res) => {
       ORDER BY 
         pt.transaction_date DESC
       LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+    `,
+      [limit, offset]
+    );
 
     if (transacResult.rowCount === 0) {
       return res.status(400).json({ message: "No transactions yet." });
@@ -333,7 +424,7 @@ const getPurchaseTransaction = async (req, res) => {
       transactions: transacResult.rows,
       totalPages,
       currentPage: parseInt(page, 10),
-      totalCount
+      totalCount,
     });
   } catch (error) {
     console.error("Error processing purchase transactions:", error);
@@ -347,7 +438,9 @@ const getSellingInsights = async (req, res) => {
   try {
     // Validate sell_transaction_id
     if (!sell_transaction_id) {
-      return res.status(400).json({ message: "sell_transaction_id is required." });
+      return res
+        .status(400)
+        .json({ message: "sell_transaction_id is required." });
     }
 
     // Query to get sold items along with product name and category name
@@ -369,7 +462,9 @@ const getSellingInsights = async (req, res) => {
 
     // Check if any items are found
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "No items found for this transaction." });
+      return res
+        .status(404)
+        .json({ message: "No items found for this transaction." });
     }
 
     // Return the insights
@@ -389,7 +484,9 @@ const getPurchasedInsights = async (req, res) => {
   try {
     // Validate sell_transaction_id
     if (!purchase_transaction_id) {
-      return res.status(400).json({ message: "purchase_transaction_id is required." });
+      return res
+        .status(400)
+        .json({ message: "purchase_transaction_id is required." });
     }
 
     // Query to get sold items along with product name and category name
@@ -412,7 +509,9 @@ const getPurchasedInsights = async (req, res) => {
 
     // Check if any items are found
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "No items found for this transaction." });
+      return res
+        .status(404)
+        .json({ message: "No items found for this transaction." });
     }
 
     // Return the insights
@@ -426,7 +525,12 @@ const getPurchasedInsights = async (req, res) => {
   }
 };
 
-
-
-export { sellItems, purchaseItems, getSellingTransaction, getPurchaseTransaction, getSellingInsights, getPurchasedInsights};
+export {
+  sellItems,
+  purchaseItems,
+  getSellingTransaction,
+  getPurchaseTransaction,
+  getSellingInsights,
+  getPurchasedInsights,
+};
 

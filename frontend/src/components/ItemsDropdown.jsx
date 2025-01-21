@@ -5,11 +5,10 @@ import {
   setSelectedSupplier,
   setSelectedCustomer,
   setCostPrice,
-  setTotalAvailable,
 } from "../slice/selectionSlice";
-import { fetchCostPriceApi, fetchStockInfoApi } from "../utils/routes";
+import { fetchCostPriceApi } from "../utils/routes";
 import axios from "axios";
-import React, { useEffect } from "react";
+import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 const ItemsDropdown = ({ type, items }) => {
@@ -27,28 +26,7 @@ const ItemsDropdown = ({ type, items }) => {
       ? state.selection.selectedCustomer
       : null
   );
-  // useEffect(() => {
-  //   if (type === "Product" && selectedValue) {
-  //     const eventSource = new EventSource(
-  //       `${fetchStockInfoApi}?product_id=${selectedValue.product_id}`
-  //     );
 
-  //     eventSource.onmessage = (event) => {
-  //       const data = JSON.parse(event.data);
-  //       console.log(data.totalAvailable);
-  //       dispatch(setTotalAvailable(data.totalAvailable));
-  //     };
-
-  //     eventSource.onerror = (err) => {
-  //       console.error("EventSource error:", err);
-  //       eventSource.close();
-  //     };
-
-  //     return () => {
-  //       eventSource.close();
-  //     };
-  //   }
-  // });
 
   const handleSelection = async (e) => {
     const value = e.target.value;

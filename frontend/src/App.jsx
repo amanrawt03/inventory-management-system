@@ -5,10 +5,6 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import AddItemsPage from "./pages/AddItemsPage";
 import SellItemsPage from "./pages/SellItemsPage";
-import CategoryList from "./lists/CategoryList";
-import SuppliersList from "./lists/SuppliersList";
-import ItemsList from "./lists/ItemsList";
-import LocationsList from "./lists/LocationsList";
 import { ToastContainer, toast } from "react-toastify";
 import PurchaseTransactionPage from "./pages/PurchaseTransactionPage";
 import Layout from "./components/Layout";
@@ -16,7 +12,11 @@ import SellTransactionPage from "./pages/SellTransactionPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ProfilePage from "./pages/ProfilePage";
+import ChangePassword from "./pages/ChangePassword";
+import NotificationsPage from "./pages/NotificationsPage";
+import useGoogleAuthListener from "./hooks/useGoogleAuthListener";
 function App() {
+  useGoogleAuthListener();
   const showToast = () => {
     toast.success("This is a success message!", {
       position: toast.POSITION.TOP_RIGHT,
@@ -60,24 +60,16 @@ function App() {
             element={<PurchaseTransactionPage showToast={showToast} />}
           />
           <Route
-            path="/list/Categories"
-            element={<CategoryList showToast={showToast} />}
-          />
-          <Route
-            path="/list/Suppliers"
-            element={<SuppliersList showToast={showToast} />}
-          />
-          <Route
-            path="/list/Items"
-            element={<ItemsList showToast={showToast} />}
-          />
-          <Route
-            path="/list/Locations"
-            element={<LocationsList showToast={showToast} />}
-          />
-          <Route
             path="/profile"
             element={<ProfilePage showToast={showToast} />}
+          />
+          <Route
+            path="/changePassword"
+            element={<ChangePassword showToast={showToast} />}
+          />
+          <Route
+            path="/notifications"
+            element={<NotificationsPage showToast={showToast} />}
           />
         </Route>
       </Routes>

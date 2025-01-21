@@ -1,6 +1,7 @@
 import pool from "../config/pgConfig.js";
-import { GET_ALL_SUPPLIERS, CHECK_SUPPLIER_EXISTS, INSERT_NEW_SUPPLIER } from "../queries/supplierQueries.js";
-
+import {CHECK_SUPPLIER_EXISTS, INSERT_NEW_SUPPLIER } from "../queries/supplierQueries.js";
+import client from '../config/redisConfig.js'
+import {publishNotification} from '../utils/publishNotification.js'
 const getAllSuppliers = async (req, res) => {
   try {
     const { search = '', page = 1, limit = 10, sortOrder = 'ASC' } = req.query;
@@ -52,9 +53,20 @@ const getAllSuppliers = async (req, res) => {
 
 const getSuppWithoutPagination = async (req, res) => {
   try {
+    let suppliers;
+    if(client.isOpen){
+      suppliers = await client.get('getSuppliers')
+    }
+    if(suppliers){
+      // console.log('cache hit')
+      suppliers = JSON.parse(suppliers)
+      return res.status(200).json({ suppliers: suppliers });
+    }
+    console.log("cache miss")
     const result = await pool.query(`SELECT * FROM suppliers`);
     if (result.rowCount === 0)
       return res.status(400).json({ message: "No suppliers found" });
+    await client.setEx('getSuppliers', 60, JSON.stringify(result.rows))
     return res.status(200).json({ suppliers: result.rows });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -97,6 +109,29 @@ const createSupplier = async (req, res) => {
       transaction_count: 0, // Assuming no transactions initially
       created_at: new Date().toLocaleDateString("en-GB"), // Format: DD/MM/YYYY
     };
+    
+    // update notification table 
+    const successMessage = `New supplier, ${supplier_name} joined`
+    const notifyResult = await pool.query(
+      `INSERT INTO notifications (type, message) VALUES ($1, $2) RETURNING notification_id`,
+      ["Entity Addition", successMessage]
+    );
+    const notification_id = notifyResult.rows[0].notification_id
+    await pool.query(
+      `INSERT INTO users_notifications (user_id, notification_id) VALUES 
+       (1, $1), (2, $1)`,
+      [notification_id]
+    );
+    const transactionNotification = {
+      notification_id,
+      type: "Entity Addition",
+      is_read:false,
+      message: successMessage,
+      timestamp: new Date().toISOString(),
+    };
+    await publishNotification("notifications_channel", transactionNotification);
+
+    await client.del('getSuppliers')
 
     // Respond with the created supplier details
     return res.status(201).json({

@@ -51,6 +51,11 @@ const addNewLocation = async (req, res) => {
     // Insert new inventory
     const insertResult = await pool.query(ADD_NEW_LOCATION, [location_name]);
 
+    // update notification table 
+    await pool.query(
+      `INSERT INTO notifications (type, message) VALUES ($1, $2)`,
+      ['Entity Addition', `New inventory location, ${location_name} added`]
+    );
     return res.status(201).json({
       message: "New inventory added successfully",
       location: insertResult.rows[0],
@@ -72,6 +77,8 @@ const getLocWithoutPagination = async(req,res)=>{
     return res.status(500).json({message:"Internal Server Error", error: error.message })
   }
 }
+
+
 
 export {
   getAllLocations,

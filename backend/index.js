@@ -10,23 +10,27 @@ import supplierRoute from "./routes/supplierRoutes.js";
 import itemRoute from "./routes/itemsRoutes.js";
 import transactionRoute from "./routes/transactionRoutes.js";
 import graphRoute from './routes/graphRoutes.js';
+import notificationRoute from './routes/notificationRoutes.js';
 import cors from 'cors';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Get the current directory name
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
+import http from 'http';
+import { Server } from "socket.io";
+import './cronJobs/scheduleStockUpdate.js';
+import './cronJobs/cleanInventory.js';
+import { setupSubscription } from './config/subscriberConfig.js';
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server,{
+    cors:{
+      origin:'*',
+      methods:['GET', 'POST', 'PUT', 'PATCH']
+    }
+  });
+
+  app.set('io',io);
 const PORT = process.env.PORT || 3000;
 
+// Middlewares
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true,
@@ -36,7 +40,18 @@ app.use(cookieParser());
 app.use(bodyParser.json({ limit: '50mb' })); // For JSON payloads
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// Define your routes
+setupSubscription(io)
+// Socket
+io.on("connection", (socket) => {
+    console.log("A user connected:", socket.id);
+  
+    // Handle user disconnect
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.id);
+    });
+  });
+
+// Routes
 app.use("/api/auth", authRoute);
 app.use("/api/inventory", inventoryRoute);
 app.use("/api/category", categoryRoute);
@@ -45,7 +60,9 @@ app.use("/api/supplier", supplierRoute);
 app.use("/api/product", itemRoute);
 app.use("/api/transaction", transactionRoute);
 app.use("/api/graph", graphRoute);
+app.use("/api/notify", notificationRoute);
 
-app.listen(PORT, () => {
+// Start the server
+server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

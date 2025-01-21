@@ -20,7 +20,7 @@ const InsightsModal = ({ typeId, onClose, type }) => {
         } else {
           throw new Error("Invalid type");
         }
-        const response = await axios.get(url);
+        const response = await axios.get(url,{withCredentials:true});
         setInsightItems(response.data.items);
       } catch (err) {
         setError("Failed to load insights. Please try again.");

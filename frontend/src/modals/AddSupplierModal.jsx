@@ -4,7 +4,8 @@ import { createSupplierApi } from "../utils/routes"; // Ensure you have the corr
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { setSelectedSupplier } from "../slice/selectionSlice";
-const AddSupplierModal = () => {
+
+const AddSupplierModal = ({onSupplierUpdate}) => {
   const [supplierName, setSupplierName] = useState("");
   const [email, setEmail] = useState("");
   const dispatch = useDispatch();
@@ -23,6 +24,7 @@ const AddSupplierModal = () => {
         { supplier_name: supplierName, contact_email: email },
         { withCredentials: true }
       );
+      if(onSupplierUpdate)onSupplierUpdate()
       dispatch(setSelectedSupplier(response.data.supplier));
       document.getElementById("add_supplier_modal").close();
       toast.success("Supplier Added Successfully");

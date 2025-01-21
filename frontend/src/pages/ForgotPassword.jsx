@@ -14,10 +14,11 @@ const ForgotPassword = () => {
     e.preventDefault();
     setLoading(true);    
     try {
-      await axios.post(requestApi, { email });
+      await axios.post(requestApi, { email },{withCredentials:true});
       setSuccess(true);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'An error occurred');
+    } catch (err) { 
+      if(err.response?.data?.message === 'Invalid credentials')setSuccess(true) 
+        else toast.error(err.response?.data?.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -33,7 +34,7 @@ const ForgotPassword = () => {
               Password reset instructions have been sent to your email.
             </p>
             <button 
-              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+              className="bg-gray-900 text-white py-2 px-4 rounded hover:bg-gray-800"
               onClick={() => navigate('/')}
             >
               Return to Login
@@ -58,7 +59,7 @@ const ForgotPassword = () => {
             <div className="mt-6 space-y-4">
               <button
                 type="submit"
-                className={`bg-blue-500 text-white py-2 px-4 rounded w-full hover:bg-blue-600 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`bg-gray-900 text-white py-2 px-4 rounded w-full hover:bg-gray-800 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={loading}
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}

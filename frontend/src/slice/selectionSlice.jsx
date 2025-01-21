@@ -23,6 +23,8 @@ const initialState = {
   selectedCustomer: safeParse("selectedCustomer"),
   costPrice: safeParse("costPrice") || 0,
   totalAvailable: safeParse("totalAvailable") || 0,
+  profile_image:safeParse("profile_image"),
+  unreadNotifs:safeParse("unreadNotifs") || [],
 };
 
 const selectionSlice = createSlice({
@@ -64,6 +66,13 @@ const selectionSlice = createSlice({
         localStorage.setItem("quantity", JSON.stringify(quantity));
       }
     },
+    setProfileImage: (state, action) => {
+      const img = action.payload;
+      state.profile_image = img;
+      if (img !== undefined) {
+        localStorage.setItem("profile_image", JSON.stringify(img));
+      }
+    },
     setCostPrice: (state, action) => {
       const costPrice = Number(action.payload);
       state.costPrice = costPrice;
@@ -91,6 +100,21 @@ const selectionSlice = createSlice({
       if (customer !== undefined) {
         localStorage.setItem("selectedCustomer", JSON.stringify(customer));
       }
+    },
+    setUnreadNotifs: (state, action) => {
+      // Handle both array and single notification updates
+      if (Array.isArray(action.payload)) {
+        state.unreadNotifs = action.payload;
+      } else if (action.payload) {
+        state.unreadNotifs = [action.payload, ...state.unreadNotifs];
+      }
+      localStorage.setItem("unreadNotifs", JSON.stringify(state.unreadNotifs));
+    },
+    removeNotification: (state, action) => {
+      state.unreadNotifs = state.unreadNotifs.filter(
+        (notif) => notif.notification_id !== action.payload
+      );
+      localStorage.setItem("unreadNotifs", JSON.stringify(state.unreadNotifs));
     },
     clearItem: (state) => {
       Object.assign(state, {
@@ -132,6 +156,8 @@ const selectionSlice = createSlice({
         selectedSupplier: null,
         selectedCustomer: null,
         costPrice: 0,
+        profile_image: null,
+        unreadNotifs: []
       });
       localStorage.removeItem("currentUser");
       localStorage.removeItem("selectedCategory");
@@ -142,11 +168,14 @@ const selectionSlice = createSlice({
       localStorage.removeItem("selectedCustomer");
       localStorage.removeItem("costPrice");
       localStorage.removeItem("totalAvailable");
+      localStorage.removeItem("profile_image");
+      localStorage.removeItem("unreadNotifs");
     },
   },
 });
 
 export const {
+  setProfileImage,
   setCurrentUser,
   setSelectedCategory,
   setSelectedLocation,
@@ -156,6 +185,8 @@ export const {
   setSelectedSupplier,
   setSelectedCustomer,
   setTotalAvailable,
+  setUnreadNotifs,
+  removeNotification,
   resetState,
   clearItem,
   clearCustomer,

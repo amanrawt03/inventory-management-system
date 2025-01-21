@@ -4,6 +4,7 @@ import { FaKey } from 'react-icons/fa6';
 import axios from 'axios';
 import {resetApi} from '../utils/routes'
 import {toast} from 'react-toastify'
+
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ const ResetPassword = () => {
       await axios.post(resetApi, {
         token,
         newPassword
-      });
+      },{withCredentials:true});
       setSuccess(true);
     } catch (err) {
       toast.error(err.response?.data?.message || 'An error occurred');
@@ -44,7 +45,7 @@ const ResetPassword = () => {
               Your password has been successfully reset.
             </p>
             <button 
-              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+              className="bg-gray-900 text-white py-2 px-4 rounded hover:bg-gray-800"
               onClick={() => navigate('/')}
             >
               Return to Login
@@ -83,7 +84,7 @@ const ResetPassword = () => {
             <div className="mt-6">
               <button
                 type="submit"
-                className={`bg-blue-500 text-white py-2 px-4 rounded w-full hover:bg-blue-600 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`bg-gray-900 text-white py-2 px-4 rounded w-full hover:bg-gray-800 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={loading}
               >
                 {loading ? 'Resetting...' : 'Reset Password'}

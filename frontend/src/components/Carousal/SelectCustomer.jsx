@@ -2,23 +2,20 @@ import React, { useState, useEffect } from "react";
 import ItemsDropdown from "../ItemsDropdown";
 import AddCustomerModal from "../../modals/AddCustomerModal"; // Modal for adding a customer
 import { useSelector } from "react-redux";
-import { setSelectedCustomer } from "../../slice/selectionSlice"; // Action to set the selected customer
 import { fetchCustomersList } from "../../utils/routes";
-
 import axios from "axios";
+
 const SelectCustomer = () => {
   const [customers,setCustomers] = useState([])
+  const [customerUpdate, setCustomerUpdate] = useState(false)
   useEffect(()=>{
-    async function fetchData(){
-      const response = await axios.get(fetchCustomersList)
+    const fetchData=async()=>{
+    const response = await axios.get(fetchCustomersList, {withCredentials:true})
     setCustomers(response.data.customers)
     }
     fetchData()
-  })  
-  // Add new customer function
-  const addCustomer = (newCustomer) => {
-    dispatch(setSelectedCustomer(newCustomer)); 
-  };
+  },[customerUpdate])  
+
 
   const [active, setActive] = useState(true);
 
@@ -56,7 +53,8 @@ const SelectCustomer = () => {
         </button>
 
         {/* Add Customer Modal */}
-        <AddCustomerModal />
+        <AddCustomerModal 
+        onCustomerAdded ={()=>setCustomerUpdate(prev=>!prev)}/>
       </div>
     </div>
   );

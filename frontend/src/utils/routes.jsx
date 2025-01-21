@@ -2,9 +2,12 @@ const api = "http://localhost:3000/api";
 
 // auth
 const loginApi = `${api}/auth/login`;
+const logoutApi = `${api}/auth/logout`;
+const loginWithGoogleApi = `${api}/auth/loginWithGoogle`;
 const signupApi = `${api}/auth/signup`;
 const requestApi = `${api}/auth/request`;
 const resetApi = `${api}/auth/reset`;
+const changePassApi = `${api}/auth/changePass`;
 const updateProfileApi = `${api}/auth/update`;
 const fetchProfileApi = `${api}/auth/getProfile`;
 const UploadProfileImgApi = `${api}/auth/upload-profile-image`;
@@ -20,6 +23,7 @@ const fetchItemsApi = `${api}/product/paginate`;
 const fetchProductsList = `${api}/product`;
 const addNewProductApi = `${api}/product`;
 const fetchStockInfoApi = `${api}/product/getStockInfo`;
+const fetchProductInfoApi = `${api}/product/product-summary`;
 
 // category
 const createCategoryApi = `${api}/category`;
@@ -43,11 +47,20 @@ const purchaseTransactionApi = `${api}/transaction/purchaseTransaction`;
 
 // graph
 const netProfitApi = `${api}/graph/netprofit`;
+
+//notifications
+const fetchNotificationsApi =  `${api}/notify`
+const fetchUnreadNotificationsApi =  `${api}/notify/unread`
+const markAsReadApi = `${api}/notify/mark-read`
+
 export {
   loginApi,
+  logoutApi,
+  loginWithGoogleApi,
   signupApi,
   requestApi,
   resetApi,
+  changePassApi,
   fetchProfileApi,
   updateProfileApi,
   UploadProfileImgApi,
@@ -67,9 +80,13 @@ export {
   fetchSuppliersList,
   fetchLocationsList,
   fetchProductsList,
+  fetchProductInfoApi,
   fetchCategoriesList,
   addNewProductApi,
   sellingTransactionApi,
   purchaseTransactionApi,
   netProfitApi,
+  fetchNotificationsApi,
+  fetchUnreadNotificationsApi,
+  markAsReadApi
 };

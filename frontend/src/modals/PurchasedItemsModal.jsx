@@ -7,8 +7,8 @@ import { addToCart, updateCartItem } from "../slice/cartSlice";
 import ItemsDropdown from "../components/ItemsDropdown";
 import { fetchLocationsList } from "../utils/routes";
 import { selectCartItemsByType } from "../slice/cartSlice";
-import { clearItem, clearLocation } from "../slice/selectionSlice";
-
+import { clearItem } from "../slice/selectionSlice";
+import { MdCurrencyRupee } from "react-icons/md";
 const PurchasedItemsModal = ({ setShowOrderModal, item, type }) => {
   const [quantity, setQuantity] = useState(0);
   const [price, setPrice] = useState(0);
@@ -34,7 +34,7 @@ const PurchasedItemsModal = ({ setShowOrderModal, item, type }) => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await axios.get(fetchLocationsList);
+        const response = await axios.get(fetchLocationsList,{withCredentials:true});
         setLocations(response.data.locations);
       } catch (error) {
         console.error("Error fetching locations:", error);
@@ -85,6 +85,7 @@ const PurchasedItemsModal = ({ setShowOrderModal, item, type }) => {
       product_id: item.product_id,
       product_name: item.product_name,
       supplier_id: selectedSupplier.supplier_id,
+      supplier_name:selectedSupplier.supplier_name,
       cost_price: price,
       quantity,
       total_cost: price * quantity,
@@ -144,7 +145,7 @@ const PurchasedItemsModal = ({ setShowOrderModal, item, type }) => {
           {/* Cost Price Input */}
           <div>
             <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-green-900" />
+              <MdCurrencyRupee className="w-4 h-4 text-green-900" />
               Cost Price
             </label>
             <input

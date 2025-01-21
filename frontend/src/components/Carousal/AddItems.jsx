@@ -14,11 +14,12 @@ const AddItems = () => {
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [items, setItems] = useState([]);
+  const [itemUpdate, setItemUpdate] = useState(false);
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await axios.get(fetchProductsList);
+        const response = await axios.get(fetchProductsList, {withCredentials:true});
         setItems(response.data.items);
       } catch (error) {
         console.error("Error fetching items:", error);
@@ -27,7 +28,7 @@ const AddItems = () => {
     };
 
     fetchItems();
-  }, []);
+  }, [itemUpdate]);
 
   useEffect(() => {
     setShowOrderModal(Boolean(currentItem));
@@ -42,7 +43,7 @@ const AddItems = () => {
         <ItemsDropdown key="addItems" type="Product" items={items} />
 
         {/* Conditional rendering of order modal */}
-        {showOrderModal && currentItem && (
+        {showOrderModal && (
           <PurchasedItemsModal
             setShowOrderModal={setShowOrderModal}
             item={currentItem}
@@ -61,7 +62,8 @@ const AddItems = () => {
 
       {/* AddItemsModal with visibility control */}
       {showItemsModal && (
-        <AddItemsModal setShowModal={setShowItemsModal} />
+        <AddItemsModal setShowModal={setShowItemsModal} 
+        onItemAdded={()=>setItemUpdate(prev=>!prev)}/>
       )}
     </div>
   );

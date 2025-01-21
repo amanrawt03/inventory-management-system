@@ -1,7 +1,6 @@
 import React from "react";
-import Sidebar from "../components/LeftDrawer"
 import AddItemsCarousal from "../components/Carousal/AddItemsCarousal";
-
+import { Typography } from "@mui/material";
 const AddItemsPage = () => {
   return (
     <div className="bg-base-200 min-h-screen flex">
@@ -12,9 +11,9 @@ const AddItemsPage = () => {
         {/* Page Header */}
 
         <div className="flex justify-between">
-          <h1 className="text-4xl font-extrabold tracking-tight text-gray-800">
-            Add New Items
-          </h1>
+        <Typography variant="h4" component="h1" fontWeight="bold">
+          Add New Items
+        </Typography>
         </div>
 
         <div className="border rounded-lg shadow-md bg-white p-2 w-cwid-75 min-h-cht-83 mr-8">

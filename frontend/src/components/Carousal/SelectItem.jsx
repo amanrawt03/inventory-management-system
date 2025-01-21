@@ -10,7 +10,7 @@ const SelectItem = () => {
   const currentItem  = useSelector(state=>state.selection.selectedItem)
   useEffect(() => {
     async function fetchData() {
-      const response = await axios.get(fetchProductsList);
+      const response = await axios.get(fetchProductsList, {withCredentials:true});
       setItems(response.data.items);
     }
     fetchData();
@@ -34,7 +34,7 @@ const SelectItem = () => {
             type={"Save"}
           />
         )}
-      </div>
+      </div>    
     </div>
   );
 };

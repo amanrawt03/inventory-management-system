@@ -1,124 +1,262 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { MdEmail } from "react-icons/md";
-import { FaKey } from "react-icons/fa6";
-import inventoryImage from "../assets/inventory_bg.avif";
-import { loginApi } from "../utils/routes";
-import { useDispatch } from "react-redux";
-import { setCurrentUser } from "../slice/selectionSlice";
-const LoginPage = () => {
-  const dispatch = useDispatch()
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  import React, { useState } from 'react';
+  import { useNavigate } from 'react-router-dom';
+  import { useDispatch } from 'react-redux';
+  import axios from 'axios';
+  import inventoryImage from "../assets/inventory_bg.avif";
+  import { 
+    Box,
+    Card,
+    CardContent,
+    CardMedia,
+    Typography,
+    TextField,
+    Button,
+    Container,
+    Grid,
+    InputAdornment,
+    Alert,
+    CircularProgress,
+  } from '@mui/material';
+  import { Link } from 'react-router-dom';
+  import { styled } from '@mui/material/styles';
+  import EmailIcon from '@mui/icons-material/Email';
+  import LockIcon from '@mui/icons-material/Lock';
+  import { GoogleLogin } from '@react-oauth/google';
+  import { loginApi, loginWithGoogleApi } from '../utils/routes';
+  import { setCurrentUser } from '../slice/selectionSlice';
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const DividerWithText = styled('div')(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    '&::before, &::after': {
+      content: '""',
+      flex: 1,
+      borderBottom: `1px solid ${theme.palette.grey[400]}`,
+    },
+    '& span': {
+      padding: theme.spacing(0, 2),
+      color: theme.palette.grey[600],
+      textTransform: 'lowercase',
+    },
+  }));
+  const StyledCard = styled(Card)(({ theme }) => ({
+    maxWidth: 1000,
+    margin: 'auto',
+    display: 'flex',
+    borderRadius: theme.spacing(2),
+    boxShadow: theme.shadows[10],
+    [theme.breakpoints.down('md')]: {
+      flexDirection: 'column',
+    },
+  }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  const LoginPage = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    try {
-      const response = await axios.post(loginApi, formData, {
-        withCredentials: true,
+    const handleChange = (e) => {
+      setFormData({
+        ...formData,
+        [e.target.name]: e.target.value,
       });
-      console.log("Login Successful:", response.data.user); 
-      dispatch(setCurrentUser(response.data.user))
-      setLoading(false);
-      navigate("/home");
-    } catch (err) {
-      console.error("Login Error:", err); // Optional debugging
-      setLoading(false);
-      setError(err.response?.data?.message || "An error occurred");
-    }
+    };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await axios.post(loginApi, formData, {
+          withCredentials: true,
+        });
+        dispatch(setCurrentUser(response.data.user));
+        setLoading(false);
+        navigate('/home');
+      } catch (err) {
+        setLoading(false);
+        setError(err.response?.data?.message || 'An error occurred');
+      }
+    };
+
+    const handleGoogleLogin = async (response) => {
+      try {
+        const googleResponse = await axios.post(
+          loginWithGoogleApi,
+          { token: response.credential },
+          { withCredentials: true }
+        );
+        dispatch(setCurrentUser(googleResponse.data.user));
+        navigate('/home');
+      } catch (err) {
+        setError(err.response?.data?.message || 'An error occurred during Google login');
+      }
+    };
+
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          bgcolor: 'grey.100',
+          py: 4,
+        }}
+      >
+        <Container>
+          <StyledCard>
+            <CardMedia
+              component="img"
+              sx={{
+                width: { md: '50%' },
+                objectFit: 'cover',
+              }}
+              image={inventoryImage}
+              alt="Inventory background"
+            />
+            <CardContent
+              sx={{
+                flex: 1,
+                p: 4,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                bgcolor: 'background.paper',
+              }}
+            >
+              <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" color="grey.900">
+                Login
+              </Typography>
+
+              {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+              <form onSubmit={handleSubmit}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EmailIcon sx={{ color: 'grey.800' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'grey.300',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'grey.400',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'grey.700',
+                          },
+                        },
+                        '& .MuiInputLabel-root.Mui-focused': {
+                          color: 'grey.700',
+                        },
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LockIcon sx={{ color: 'grey.800' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'grey.300',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'grey.400',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'grey.700',
+                          },
+                        },
+                        '& .MuiInputLabel-root.Mui-focused': {
+                          color: 'grey.700',
+                        },
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sx={{ textAlign: 'right' }}>
+                    <Link
+                    to={'/forgot-password'}
+                      component="button"
+                      variant="body2"
+                      sx={{ 
+                        textDecoration: 'none',
+                        color: 'grey.700',
+                        '&:hover': {
+                          color: 'grey.900',
+                        },
+                      }}
+                    >
+                      Forgot Password?
+                    </Link>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      size="large"
+                      disabled={loading}
+                      sx={{ 
+                        py: 1.5,
+                        bgcolor: 'grey.900',
+                        '&:hover': {
+                          bgcolor: 'grey.800',
+                        },
+                      }}
+                    >
+                      {loading ? <CircularProgress size={24} sx={{ color: 'grey.800' }} /> : 'Login'}
+                    </Button>
+                  </Grid>
+                  <Grid item xs={12}>
+                  <DividerWithText>
+                    <span>or</span>
+                  </DividerWithText>
+                </Grid>
+                  <Grid item xs={12} sx={{ textAlign: 'center' }}>
+                    <Box sx={{ mt: 2 }}>
+                      <GoogleLogin
+                        onSuccess={handleGoogleLogin}
+                        onError={() => setError('Google login failed')}
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
+              </form>
+            </CardContent>
+          </StyledCard>
+        </Container>
+      </Box>
+    );
   };
 
-  return (
-    <div className="bg-base-200 min-h-screen flex items-center justify-center">
-      <div className="card lg:card-side bg-base-100 shadow-xl max-w-4xl w-full">
-        {/* Left Section with Image */}
-        <figure className="lg:w-1/2">
-          <img
-            src={inventoryImage}
-            alt="Inventory background"
-            className="object-cover w-full h-full"
-          />
-        </figure>
-
-        {/* Right Section with Form */}
-        <div className="card-body lg:w-1/2">
-          <h2 className="card-title text-2xl font-bold mb-6">Login</h2>
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          <form onSubmit={handleSubmit}>
-            {/* Email Input */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Email</span>
-              </label>
-              <label className="input input-bordered flex items-center gap-2">
-                <MdEmail />
-                <input
-                  type="email"
-                  className="grow"
-                  placeholder="email@example.com"
-                  required
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </label>
-            </div>
-
-            {/* Password Input */}
-            <div className="form-control mt-4">
-              <label className="label">
-                <span className="label-text">Password</span>
-              </label>
-              <label className="input input-bordered flex items-center gap-2">
-                <FaKey />
-                <input
-                  type="password"
-                  className="grow"
-                  placeholder="Enter password"
-                  required
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-              </label>
-            </div>
-            <div className="flex justify-end mt-1">
-              <button
-                type="button"
-                className="link link-primary text-sm"
-                onClick={() => navigate("/forgot-password")}
-              >
-                Forgot Password?
-              </button>
-            </div>
-            {/* Login Button */}
-            <div className="form-control mt-6">
-              <button
-                type="submit"
-                className={`btn btn-primary ${loading ? "loading" : ""}`}
-                disabled={loading}
-              >
-                Login
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default LoginPage;
+  export default LoginPage;

@@ -17,7 +17,6 @@ const AddCategoryModal = ({addCategory}) => {
         { category_name: newCategory }, // The payload
         { withCredentials: true } // Include credentials (cookies)
       );
-      console.log(response.data.category)
       addCategory(response.data.category)
       // Close the modal and clear the input
       document.getElementById("add_category_modal").close();

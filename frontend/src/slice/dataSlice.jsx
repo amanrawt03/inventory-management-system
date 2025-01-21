@@ -4,29 +4,29 @@ import axios from "axios";
 // APIs for fetching details
 import {
   fetchCategoriesList,
-  fetchItemsApi,
+  fetchProductsList,
   fetchSuppliersList,
-  fetchLocationsApi,
+  fetchLocationsList,
 } from "../utils/routes";
 
 // Async thunks for fetching data
 export const fetchCategories = createAsyncThunk(
   "data/fetchCategories",
   async () => {
-    const response = await axios.get(fetchCategoriesList);
+    const response = await axios.get(fetchCategoriesList,{withCredentials:true});
     return response.data.categories;
   }
 );
 
 export const fetchItems = createAsyncThunk("data/fetchItems", async () => {
-  const response = await axios.get(fetchItemsApi);
+  const response = await axios.get(fetchProductsList,{withCredentials:true});
   return response.data.items;
 });
 
 export const fetchSuppliers = createAsyncThunk(
   "data/fetchSuppliers",
   async () => {
-    const response = await axios.get(fetchSuppliersList);
+    const response = await axios.get(fetchSuppliersList,{withCredentials:true});
     return response.data.suppliers;
   }
 );
@@ -34,7 +34,7 @@ export const fetchSuppliers = createAsyncThunk(
 export const fetchLocations = createAsyncThunk(
   "data/fetchLocations",
   async () => {
-    const response = await axios.get(fetchLocationsApi);
+    const response = await axios.get(fetchLocationsList,{withCredentials:true});
     return response.data.locations;
   }
 );

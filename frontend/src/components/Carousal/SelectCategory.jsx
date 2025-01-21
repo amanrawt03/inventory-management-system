@@ -7,7 +7,6 @@ import { setSelectedCategory } from "../../slice/selectionSlice";
 const SelectCategory = () => {
   const dispatch = useDispatch();
   const addCategory = (newCategory) => {
-    console.log(newCategory);
     dispatch(setSelectedCategory(newCategory));
     refresh(true)
   };

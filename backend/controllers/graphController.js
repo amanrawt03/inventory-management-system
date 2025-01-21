@@ -6,7 +6,7 @@ const getNetProfit = async(req,res)=>{
           SELECT SUM(total_amount) as total_revenue
           FROM sell_transactions
         `);
-    
+
         const costResult = await pool.query(`
           SELECT SUM(total_cost_price) as total_cost
           FROM purchase_transactions

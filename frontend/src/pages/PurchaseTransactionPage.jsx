@@ -2,11 +2,58 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { purchaseTransactionApi } from "../utils/routes";
 import InsightsModal from "../modals/InsightsModal";
-import ReactPaginate from "react-paginate";
-import InvoiceDocument from "../invoice/InvoiceComponent";
-import { FaDownload } from "react-icons/fa";
-import { BsFillInfoSquareFill } from "react-icons/bs";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import InvoiceDocument from "../invoice/InvoiceComponent";
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  IconButton,
+  Pagination,
+  Container,
+  CircularProgress,
+  Alert,
+  useTheme
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import InfoIcon from '@mui/icons-material/Info';
+import DownloadIcon from '@mui/icons-material/Download';
+
+// Styled components
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
+  '& .MuiTableCell-head': {
+    backgroundColor: theme.palette.grey[900],
+    color: theme.palette.common.white,
+    fontWeight: 600,
+  },
+  '& .MuiTableRow-root': {
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
+}));
+
+// Utility function to format currency in Indian format
+const formatIndianCurrency = (value) => {
+  const numValue = parseFloat(value);
+  if (numValue >= 10000000) { // 1 crore
+    const crores = (numValue / 10000000).toFixed(2);
+    return `₹${crores} Cr`;
+  } else if (numValue >= 100000) { // 1 lac
+    const lacs = (numValue / 100000).toFixed(2);
+    return `₹${lacs} L`;
+  } else {
+    return `₹${numValue.toLocaleString('en-IN')}`;
+  }
+};
 
 const PurchaseTransactionPage = () => {
   const [transactions, setTransactions] = useState([]);
@@ -15,15 +62,15 @@ const PurchaseTransactionPage = () => {
   const [selectedTransactionId, setSelectedTransactionId] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 10;
 
-  // Fetch transaction data with pagination
   useEffect(() => {
     const fetchTransactions = async () => {
       setLoading(true);
       try {
         const response = await axios.get(purchaseTransactionApi, {
           params: { page: currentPage, limit: itemsPerPage },
+          withCredentials: true
         });
         setTransactions(response.data.transactions);
         setTotalPages(response.data.totalPages);
@@ -37,10 +84,6 @@ const PurchaseTransactionPage = () => {
     fetchTransactions();
   }, [currentPage]);
 
-  if (loading) return <div className="text-center py-4">Loading...</div>;
-  if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
-
   const handleViewInsights = (transactionId) => {
     setSelectedTransactionId(transactionId);
   };
@@ -49,84 +92,116 @@ const PurchaseTransactionPage = () => {
     setSelectedTransactionId(null);
   };
 
-  const handlePageChange = ({ selected }) => {
-    setCurrentPage(selected + 1); // ReactPaginate uses 0-based indexing
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
   };
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
-    <div className="p-6 bg-gray-100 min-h-screen relative">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-        Purchase Transactions
-      </h1>
-      <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-        <table className="table-auto w-full text-left border-collapse">
-          <thead className="bg-gray-800 text-white">
-            <tr>
-              <th className="px-6 py-3">#</th>
-              <th className="px-6 py-3">Supplier Name</th>
-              <th className="px-6 py-3">Total Items Purchased</th>
-              <th className="px-6 py-3">Total Amount</th>
-              <th className="px-6 py-3">Date</th>
-              <th className="px-6 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((transaction, index) => (
-              <tr
-                key={transaction.purchase_transaction_id}
-                className="border-b hover:bg-gray-50 transition"
-              >
-                <td className="px-6 py-3">
-                  {(currentPage - 1) * itemsPerPage + index + 1}
-                </td>
-                <td className="px-6 py-3">{transaction.supplier_name}</td>
-                <td className="px-6 py-3">{transaction.total_items_purchased}</td>
-                <td className="px-6 py-3">${transaction.total_cost_price}</td>
-                <td className="px-6 py-3">
-                  {new Date(transaction.transaction_date).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-3 flex space-x-2">
-                  <button
-                    className="px-4 py-2 text-xl text-gray-800 rounded-lg hover:text-gray-500 transition"
-                    onClick={() => handleViewInsights(transaction.purchase_transaction_id)}
-                  >
-                    <BsFillInfoSquareFill />
-                  </button>
-                  <PDFDownloadLink
-                    document={<InvoiceDocument transaction={transaction} type="purchase" />}
-                    fileName={`Invoice_${transaction.purchase_transaction_id}.pdf`}
-                  >
-                    <button className="px-2 py-2 text-gray-900 rounded-lg hover:bg-gray-600 transition">
-                      <FaDownload />
-                    </button>
-                  </PDFDownloadLink>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <Container maxWidth="xl">
+      <Box sx={{ py: 4, minHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="h4" component="h1" fontWeight="bold" color="text.primary" mb={4}>
+          Purchase Transactions
+        </Typography>
 
-      {/* Pagination */}
-      <div className="mt-6 flex justify-center">
-        <ReactPaginate
-          previousLabel={"Previous"}
-          nextLabel={"Next"}
-          breakLabel={"..."}
-          pageCount={totalPages}
-          marginPagesDisplayed={2}
-          pageRangeDisplayed={3}
-          onPageChange={handlePageChange}
-          containerClassName={"flex space-x-2"}
-          activeClassName={"text-white bg-blue-600 px-3 py-1 rounded-lg"}
-          pageClassName={"px-3 py-1 rounded-lg bg-gray-300"}
-          previousClassName={"px-3 py-1 rounded-lg bg-gray-500 text-white"}
-          nextClassName={"px-3 py-1 rounded-lg bg-gray-500 text-white"}
-          disabledClassName={"opacity-50 cursor-not-allowed"}
-        />
-      </div>
+        <StyledTableContainer component={Paper} sx={{ flex: 1 }}>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell>#</TableCell>
+                <TableCell>Supplier Name</TableCell>
+                <TableCell>Total Items</TableCell>
+                <TableCell>Total Amount</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {transactions.map((transaction, index) => (
+                <TableRow key={transaction.purchase_transaction_id}>
+                  <TableCell>
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </TableCell>
+                  <TableCell>{transaction.supplier_name}</TableCell>
+                  <TableCell>{transaction.total_items_purchased}</TableCell>
+                  <TableCell>
+                    {formatIndianCurrency(transaction.total_cost_price)}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(transaction.transaction_date).toLocaleDateString('en-IN')}
+                  </TableCell>
+                  <TableCell>
+                    <Box display="flex" gap={1}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleViewInsights(transaction.purchase_transaction_id)}
+                        color="grey"
+                      >
+                        <InfoIcon sx={{color:'#222222'}}/>
+                      </IconButton>
+                      <PDFDownloadLink
+                        document={<InvoiceDocument transaction={transaction} type="purchase" />}
+                        fileName={`Invoice_${transaction.purchase_transaction_id}.pdf`}
+                      >
+                        {({ loading }) => (
+                          <IconButton
+                            size="small"
+                            color="grey"
+                            disabled={loading}
+                          >
+                            <DownloadIcon sx={{color:'#222222'}}/>
+                          </IconButton>
+                        )}
+                      </PDFDownloadLink>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </StyledTableContainer>
 
-      {/* Purchase Insights Modal */}
+        {/* Pagination at bottom */}
+        <Box
+          sx={{
+            mt: 3,
+            mb: 2,
+            display: 'flex',
+            justifyContent: 'center',
+            position: 'sticky',
+            bottom: 0,
+            backgroundColor: 'background.default',
+            py: 2,
+          }}
+        >
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      </Box>
+
+      {/* Insights Modal */}
       {selectedTransactionId && (
         <InsightsModal
           typeId={selectedTransactionId}
@@ -134,7 +209,7 @@ const PurchaseTransactionPage = () => {
           type="purchase"
         />
       )}
-    </div>
+    </Container>
   );
 };
 

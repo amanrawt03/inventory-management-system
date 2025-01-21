@@ -11,7 +11,7 @@ const SelectInventory = () => {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await axios.get(fetchLocationsList);
+        const response = await axios.get(fetchLocationsList, {withCredentials:true});
         setLocations(response.data.locations);
       } catch (err) {
         console.error("Error fetching suppliers:", err);

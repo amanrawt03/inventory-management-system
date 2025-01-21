@@ -3,12 +3,41 @@ import axios from "axios";
 import { debounce } from "lodash";
 import { sellingTransactionApi } from "../utils/routes";
 import InsightsModal from "../modals/InsightsModal";
-import { FaDownload } from "react-icons/fa";
-import { BsFillInfoSquareFill } from "react-icons/bs";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import InvoiceDocument from "../invoice/InvoiceComponent";
+import {
+  Container,
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Box,
+  IconButton,
+  Pagination,
+  CircularProgress,
+  Alert,
+  TableFooter,
+  useTheme
+} from "@mui/material";
+import { Info, Download } from '@mui/icons-material';
+
+const formatCurrency = (amount) => {
+  if (amount >= 10000000) { // 1 crore = 10000000
+    return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  } else if (amount >= 100000) { // 1 lakh = 100000
+    return `₹${(amount / 100000).toFixed(2)} L`;
+  } else {
+    return `₹${amount.toLocaleString()}`;
+  }
+};
 
 const SellTransactionPage = () => {
+  const theme = useTheme();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -17,21 +46,15 @@ const SellTransactionPage = () => {
   const [sortOrder, setSortOrder] = useState("ASC");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTransactionId, setSelectedTransactionId] = useState(null);
-  const limit = 8;
+  const limit = 10;
 
-  // Debounced fetch function
   const debouncedFetchTransactions = useCallback(
     debounce(async (search, page, sortOrder) => {
       setLoading(true);
       try {
         const response = await axios.get(sellingTransactionApi, {
-          params: {
-            search,
-            page,
-            limit,
-            sortOrder,
-          },
-        });
+          params: { search, page, limit, sortOrder },
+        }, { withCredentials: true });
         setTransactions(response.data.transactions);
         setTotalPages(response.data.pagination.totalPages);
         setError("");
@@ -45,155 +68,155 @@ const SellTransactionPage = () => {
     []
   );
 
-  // Search effect
   useEffect(() => {
     debouncedFetchTransactions(searchTerm, currentPage, sortOrder);
-
-    // Cleanup function to cancel any pending debounced calls
-    return () => {
-      debouncedFetchTransactions.cancel();
-    };
+    return () => debouncedFetchTransactions.cancel();
   }, [searchTerm, currentPage, sortOrder, debouncedFetchTransactions]);
 
-  // Pagination handlers
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1));
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
   };
 
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-  };
-
-  // Insights modal handler
   const handleViewInsights = (transactionId) => {
     setSelectedTransactionId(transactionId);
   };
 
-  const closeModal = () => {
-    setSelectedTransactionId(null);
-  };
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  if (loading) return <div className="text-center py-4">Loading...</div>;
-  if (error)
-    return <div className="text-center py-4 text-red-500">{error}</div>;
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" fontWeight="bold" mb={4} color="text.primary">
         Sell Transactions
-      </h1>
+      </Typography>
 
-      {/* Search Input */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search transactions..."
-          className="input input-bordered w-full max-w-xs"
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset to first page on new search
-          }}
-        />
-      </div>
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search transactions..."
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setCurrentPage(1);
+        }}
+        sx={{ mb: 4, maxWidth: 400 }}
+      />
 
-      {/* Transactions Table */}
-      <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-        <table className="table-auto w-full text-left border-collapse">
-          <thead className="bg-gray-800 text-white">
-            <tr>
-              <th className="px-6 py-3">#</th>
-              <th className="px-6 py-3">Customer Name</th>
-              <th className="px-6 py-3">Total Items Sold</th>
-              <th className="px-6 py-3">Total Amount (₹)</th>
-              <th className="px-6 py-3">Date</th>
-              <th className="px-6 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          mb: 4,
+          bgcolor: theme.palette.background.paper,
+          borderRadius: 2,
+          minHeight: '400px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[900], color: 'white' }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[900], color: 'white' }}>Customer Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[900], color: 'white' }}>Total Items Sold</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[900], color: 'white' }}>Total Amount</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[900], color: 'white' }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', bgcolor: theme.palette.grey[900], color: 'white' }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {transactions.length > 0 ? (
               transactions.map((transaction, index) => (
-                <tr
+                <TableRow 
                   key={transaction.sell_transaction_id}
-                  className="border-b hover:bg-gray-50 transition"
+                  sx={{ '&:hover': { bgcolor: theme.palette.action.hover } }}
                 >
-                  <td className="px-6 py-3">
-                    {(currentPage - 1) * limit + index + 1}
-                  </td>
-                  <td className="px-6 py-3">{transaction.customer_name}</td>
-                  <td className="px-6 py-3">{transaction.total_items_sold}</td>
-                  <td className="px-6 py-3">{transaction.total_amount}</td>
-                  <td className="px-6 py-3">
+                  <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
+                  <TableCell>{transaction.customer_name}</TableCell>
+                  <TableCell>{transaction.total_items_sold}</TableCell>
+                  <TableCell>{formatCurrency(transaction.total_amount)}</TableCell>
+                  <TableCell>
                     {new Date(transaction.transaction_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-3 flex space-x-2">
-                    <button
-                      className="px-4 py-2 text-xl text-gray-800 rounded-lg hover:text-gray-500 transition"
-                      onClick={() =>
-                        handleViewInsights(transaction.sell_transaction_id)
-                      }
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      onClick={() => handleViewInsights(transaction.sell_transaction_id)}
+                      color="primary"
                     >
-                      <BsFillInfoSquareFill />
-                    </button>
+                      <Info sx={{color:'#222222'}}/>
+                    </IconButton>
                     <PDFDownloadLink
-                      document={
-                        <InvoiceDocument transaction={transaction} type="sell" />
-                      }
-                      fileName={`Invoice_{transaction.sell_transaction_id}.pdf`}
+                      document={<InvoiceDocument transaction={transaction} type="sell" />}
+                      fileName={`Invoice_${transaction.sell_transaction_id}.pdf`}
                     >
-                      <button className="px-2 py-2 text-gray-900 rounded-lg hover:bg-gray-600 transition">
-                        <FaDownload />
-                      </button>
+                      <IconButton color="primary">
+                        <Download sx={{color:'#222222'}}/>
+                      </IconButton>
                     </PDFDownloadLink>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="text-center py-6 text-gray-500 italic"
-                >
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.secondary', fontStyle: 'italic' }}>
                   No transactions found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+          {transactions.length > 0 && transactions.length < 5 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <Box display="flex" justifyContent="center" p={2}>
+                    <Pagination
+                      count={totalPages}
+                      page={currentPage}
+                      onChange={handlePageChange}
+                      color="primary"
+                      size="large"
+                    />
+                  </Box>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          )}
+        </Table>
+      </TableContainer>
 
-      {/* Pagination */}
-      <div className="w-full pb-6 mt-6">
-        <div className="flex justify-center items-center space-x-4">
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="btn btn-primary"
-          >
-            Previous
-          </button>
-          <span className="text-lg">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="btn btn-primary"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      {transactions.length >= 5 && (
+        <Box display="flex" justifyContent="center" p={2}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+          />
+        </Box>
+      )}
 
-      {/* Selling Insights Modal */}
       {selectedTransactionId && (
         <InsightsModal
           typeId={selectedTransactionId}
-          onClose={closeModal}
+          onClose={() => setSelectedTransactionId(null)}
           type="sell"
         />
       )}
-    </div>
+    </Container>
   );
 };
 

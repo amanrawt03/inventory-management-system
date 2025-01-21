@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { setSelectedCustomer } from "../slice/selectionSlice";
 
-const AddCustomerModal = () => {
+const AddCustomerModal = ({onCustomerAdded}) => {
   const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
   const dispatch = useDispatch();
@@ -25,7 +25,9 @@ const AddCustomerModal = () => {
         { customer_name: customerName, customer_email: email },
         { withCredentials: true }
       );
-
+      if(onCustomerAdded) {
+        onCustomerAdded();
+      }
       dispatch(setSelectedCustomer(response.data.customer));
       document.getElementById("add_customer_modal").close();
       toast.success("Customer Added Successfully");
